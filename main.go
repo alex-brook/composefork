@@ -18,6 +18,7 @@ import (
 type App struct {
 	docker  *command.DockerCli
 	compose api.Compose
+	opts    *cli.ProjectOptions
 	project *types.Project
 }
 
@@ -26,34 +27,13 @@ func NewApp() *App {
 	if err != nil {
 		panic(err)
 	}
-	client.Initialize(&flags.ClientOptions{})
+	client.Initialize(&flags.ClientOptions{}, command.WithOutputStream(os.Stdout))
 
-	service, err := compose.NewComposeService(client)
+	service, err := compose.NewComposeService(client, compose.WithOutputStream(os.Stdout))
 	if err != nil {
 		panic(err)
 	}
 
-	return &App{docker: client, compose: service}
-}
-
-func main() {
-	app := NewApp()
-
-	// Parse the original compose definition
-	log.Println("Making project")
-	err := app.makeProject()
-	if err != nil {
-		panic(err)
-	}
-
-	log.Println("Bringing up project")
-	err = app.compose.Up(context.Background(), app.project, api.UpOptions{Create: api.CreateOptions{}, Start: api.StartOptions{}})
-	if err != nil {
-		log.Fatalf("up error: %v", err)
-	}
-}
-
-func (a *App) makeProject() error {
 	opts, err := cli.NewProjectOptions(
 		nil,
 		cli.WithOsEnv,
@@ -64,17 +44,56 @@ func (a *App) makeProject() error {
 		cli.WithResolvedPaths(true),
 	)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
-	discovered, err := opts.LoadProject(context.Background())
+	return &App{docker: client, compose: service, opts: opts}
+}
+
+func main() {
+	app := NewApp()
+
+	// Resolve parent / master project
+	log.Println("Loading parent project")
+	parent, err := app.opts.LoadProject(context.Background())
+	if err != nil {
+		panic(err)
+	}
+
+	// Build the master project
+	log.Println("Building", parent.Name)
+	err = app.compose.Build(context.Background(), parent, api.BuildOptions{NoCache: true})
+	if err != nil {
+		panic(err)
+	}
+
+	// Create a child project for the worktree
+	log.Println("Creating fork project")
+	err = app.makeProject(parent)
+	if err != nil {
+		panic(err)
+	}
+
+	// Bring a child project up
+	log.Println("Bringing up", app.project.Name)
+	err = app.compose.Up(context.Background(), app.project, api.UpOptions{Create: api.CreateOptions{}, Start: api.StartOptions{}})
+	if err != nil {
+		log.Fatalf("up error: %v", err)
+	}
+}
+
+func (a *App) makeProject(parent *types.Project) error {
+	oldName := parent.Name
+
+	wd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-	oldName := discovered.Name
+	parts := strings.Split(wd, "/")
+	dirname := parts[len(parts)-1]
 
-	opts.Environment["COMPOSE_PROJECT_NAME"] = fmt.Sprintf("%s_%s", oldName, os.Args[1])
-	project, err := opts.LoadProject(context.Background())
+	a.opts.Environment["COMPOSE_PROJECT_NAME"] = fmt.Sprintf("%s_%s", oldName, dirname)
+	project, err := a.opts.LoadProject(context.Background())
 	if err != nil {
 		return err
 	}
