@@ -73,7 +73,7 @@ func (a *App) makeProject() error {
 	}
 	oldName := discovered.Name
 
-	opts.Environment["COMPOSE_PROJECT_NAME"] = os.Args[1]
+	opts.Environment["COMPOSE_PROJECT_NAME"] = fmt.Sprintf("%s_%s", oldName, os.Args[1])
 	project, err := opts.LoadProject(context.Background())
 	if err != nil {
 		return err
