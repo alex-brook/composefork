@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-# bundle install
-# ./bin/rails db:prepare
+bundle install
+./bin/rails db:prepare
 
 exec "$@"
