@@ -62,7 +62,7 @@ func main() {
 
 	// Build the master project
 	log.Println("Building", parent.Name)
-	err = app.compose.Build(context.Background(), parent, api.BuildOptions{NoCache: true})
+	err = app.compose.Build(context.Background(), parent, api.BuildOptions{})
 	if err != nil {
 		panic(err)
 	}
