@@ -57,8 +57,7 @@ Run this to clean up after deleting a worktree.
 
 var skillCmd = &cobra.Command{
 	Use:   "skill",
-	Short: "Print usage context for agents",
-	Long:  "Prints a context document explaining what composefork does, when to use it, and how each command works. Intended to be read by an agent before operating the tool.",
+	Short: "Agents: read this before using composefork",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Fprint(cmd.OutOrStdout(), skillText)
 	},
