@@ -14,6 +14,8 @@ import (
 	"github.com/docker/compose/v5/pkg/compose"
 )
 
+const COMPOSEFORK_LABEL = "com.github.alex-brook.composefork"
+
 func newClient() (*command.DockerCli, api.Compose, error) {
 	client, err := command.NewDockerCli()
 	if err != nil {

@@ -7,11 +7,7 @@ import (
 
 var worktreeCmd = &cobra.Command{
 	Use:   "worktree",
-	Short: "Fork the project for this worktree",
-	Long: `
-    Assuming you are in a worktree of a project that defines a compose based
-    devcontainer, bring up a fork of that project for use in the worktree
-  `,
+	Short: "Commands for the current worktree",
 }
 
 var worktreeUpCmd = &cobra.Command{
@@ -30,21 +26,9 @@ var worktreeDownCmd = &cobra.Command{
 	},
 }
 
-var worktreePsCmd = &cobra.Command{
-	Use:   "ps",
-	Short: "List compose projects for all worktrees",
-}
-
-var worktreePruneCmd = &cobra.Command{
-	Use:   "prune",
-	Short: "Remove all compose projects for worktrees that no longer exist",
-}
-
 func init() {
 	worktreeCmd.AddCommand(worktreeUpCmd)
 	worktreeCmd.AddCommand(worktreeDownCmd)
-	worktreeCmd.AddCommand(worktreePsCmd)
-	worktreeCmd.AddCommand(worktreePruneCmd)
 
 	rootCmd.AddCommand(worktreeCmd)
 }
