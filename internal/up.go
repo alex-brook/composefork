@@ -93,6 +93,8 @@ func overrideProject(parent *types.Project) (*types.Project, error) {
 		srv.CustomLabels[api.WorkingDirLabel] = project.WorkingDir
 		srv.CustomLabels[api.ConfigFilesLabel] = strings.Join(project.ComposeFiles, ",")
 
+		srv.CustomLabels[COMPOSEFORK_LABEL] = "1"
+
 		project.Services[srv.Name] = srv
 	}
 
