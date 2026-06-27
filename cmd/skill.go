@@ -1,0 +1,69 @@
+package cmd
+
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+)
+
+const skillText = `# composefork
+
+## Why this tool exists
+
+When multiple agents work in parallel on the same repository, each in its own
+git worktree, they share a single Docker Compose project. Running that project
+normally causes port conflicts (two services trying to bind the same host port)
+and volume collisions (containers stomping on each other's data).
+
+composefork solves this by forking the compose project for your worktree: it
+creates a namespaced copy with a unique project name and dynamically assigned
+ports, so each worktree runs a fully isolated container environment.
+
+## When to use it
+
+Use composefork when:
+- You are working in a git worktree (not the main checkout)
+- The project uses a Docker Compose-based devcontainer
+- You need the container environment running to do your work
+
+Do NOT run "docker compose up" directly — that would conflict with other
+worktrees sharing the same project.
+
+## Commands
+
+All commands must be run from inside your worktree directory.
+
+The forked project is named {original_project}_{worktree_dirname}, so each
+worktree gets its own isolated namespace automatically.
+
+### composefork worktree up
+Brings up a forked copy of the compose project for the current worktree.
+Port bindings are assigned dynamically (no fixed host ports), so multiple
+worktrees can run simultaneously without conflict.
+
+Run this before starting work that requires the container environment.
+
+### composefork worktree down
+Tears down the forked compose project for the current worktree, including
+volumes. Run this when you are done or need a clean environment.
+
+### composefork worktree ps
+Lists compose projects for all worktrees. (Not yet implemented.)
+
+### composefork worktree prune
+Removes compose projects for worktrees that no longer exist in git.
+(Not yet implemented.)
+`
+
+var skillCmd = &cobra.Command{
+	Use:   "skill",
+	Short: "Print usage context for agents",
+	Long:  "Prints a context document explaining what composefork does, when to use it, and how each command works. Intended to be read by an agent before operating the tool.",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Fprint(cmd.OutOrStdout(), skillText)
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(skillCmd)
+}
