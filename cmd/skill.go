@@ -47,12 +47,12 @@ Run this before starting work that requires the container environment.
 Tears down the forked compose project for the current worktree, including
 volumes. Run this when you are done or need a clean environment.
 
-### composefork worktree ps
-Lists compose projects for all worktrees. (Not yet implemented.)
+### composefork ps
+Lists all active forked compose projects across all worktrees.
 
-### composefork worktree prune
-Removes compose projects for worktrees that no longer exist in git.
-(Not yet implemented.)
+### composefork prune
+Removes forked compose projects whose worktree directories no longer exist.
+Run this to clean up after deleting a worktree.
 `
 
 var skillCmd = &cobra.Command{
