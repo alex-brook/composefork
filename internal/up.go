@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/cli"
@@ -74,6 +75,11 @@ func overrideProject(parent *types.Project) (*types.Project, error) {
 		return nil, err
 	}
 
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
 	for _, srv := range project.Services {
 		if srv.Image == "" {
 			srv.Image = fmt.Sprintf("%s-%s:%s", oldName, srv.Name, "latest")
@@ -93,7 +99,7 @@ func overrideProject(parent *types.Project) (*types.Project, error) {
 		srv.CustomLabels[api.WorkingDirLabel] = project.WorkingDir
 		srv.CustomLabels[api.ConfigFilesLabel] = strings.Join(project.ComposeFiles, ",")
 
-		srv.CustomLabels[COMPOSEFORK_LABEL] = "1"
+		srv.CustomLabels[COMPOSEFORK_LABEL] = wd
 
 		project.Services[srv.Name] = srv
 	}

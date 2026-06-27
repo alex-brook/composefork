@@ -2,14 +2,16 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 
 	"github.com/docker/compose/v5/pkg/api"
 	"github.com/moby/moby/client"
 )
 
-func RunPsCommand() error {
-	docker, _, err := newClient()
+func RunPruneCommand() error {
+	docker, compose, err := newClient()
 	if err != nil {
 		return fmt.Errorf("error initializing the docker client: %w", err)
 	}
@@ -24,20 +26,34 @@ func RunPsCommand() error {
 	}
 
 	set := make(map[string]string)
-	results := []string{}
 	for _, item := range containers.Items {
 		projectName := item.Labels[api.ProjectLabel]
 		_, ok := set[projectName]
 		if ok {
 			continue
 		}
-
-		set[projectName] = ""
-		results = append(results, projectName)
+		location := item.Labels[COMPOSEFORK_LABEL]
+		set[projectName] = location
 	}
 
-	for _, result := range results {
-		fmt.Println(result)
+	for key, val := range set {
+		_, err := os.Stat(val)
+		if err == nil {
+			continue
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+
+		fmt.Println("Removing ", key)
+		err = compose.Down(context.Background(), key, api.DownOptions{
+			Volumes:       true,
+			RemoveOrphans: true,
+			Images:        "local",
+		})
+		if err != nil {
+			return err
+		}
+
 	}
 
 	return nil
