@@ -14,7 +14,7 @@ cd ../my-feature
 composefork worktree up
 ```
 
-This creates an isolated compose project named `<original>_my-feature` with
+This creates another compose project named `<original>_my-feature` with
 dynamically assigned ports, so it won't conflict with other worktrees.
 
 ### Tear it down when you're done
