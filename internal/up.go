@@ -76,7 +76,7 @@ func RunUpCommand() error {
 		serviceName := cont.Labels[api.ServiceLabel]
 		fmt.Printf("%2s%s\n", "", serviceName)
 		for _, port := range exposedPorts {
-			fmt.Printf("%4s%d:%d\n", "", port.PublicPort, port.PrivatePort)
+			fmt.Printf("%4s%-10s %d:%d\n", "", port.IP, port.PublicPort, port.PrivatePort)
 		}
 	}
 
