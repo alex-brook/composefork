@@ -43,7 +43,7 @@ func RunUpCommand() error {
 	}
 
 	// Bring a child project up
-	log.Println("Bringing up", project.Name)
+	log.Println("Bringing up project", project.Name)
 	err = compose.Up(context.Background(), project, api.UpOptions{Create: api.CreateOptions{}, Start: api.StartOptions{Wait: true}})
 	if err != nil {
 		return fmt.Errorf("up error: %w", err)
@@ -59,7 +59,7 @@ func RunUpCommand() error {
 		return fmt.Errorf("error listing containers: %w", err)
 	}
 
-	fmt.Println(project.Name, "ports")
+	fmt.Println("project", project.Name, "ports")
 	for _, cont := range containers.Items {
 		exposedPorts := []container.PortSummary{}
 		for _, port := range cont.Ports {
