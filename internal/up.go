@@ -44,7 +44,7 @@ func RunUpCommand() error {
 
 	// Bring a child project up
 	log.Println("Bringing up", project.Name)
-	err = compose.Up(context.Background(), project, api.UpOptions{Create: api.CreateOptions{}, Start: api.StartOptions{}})
+	err = compose.Up(context.Background(), project, api.UpOptions{Create: api.CreateOptions{}, Start: api.StartOptions{Wait: true}})
 	if err != nil {
 		return fmt.Errorf("up error: %w", err)
 	}
