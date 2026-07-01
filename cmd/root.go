@@ -46,4 +46,4 @@ func init() {
 // composefork worktree up
 // composefork worktree down
 // composefork worktree exec [service] [cmd]
-// composefork ps
+// composefork ls

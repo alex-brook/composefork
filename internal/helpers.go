@@ -65,3 +65,30 @@ func loadProject() (*types.Project, error) {
 
 	return project, nil
 }
+
+func printProjectStatus(compose api.Compose, name string) error {
+	containers, err := compose.Ps(context.Background(), name, api.PsOptions{All: false})
+	if err != nil {
+		return fmt.Errorf("error in ps: %w", err)
+	}
+
+	for _, container := range containers {
+		var ports strings.Builder
+		published := 0
+		for _, publisher := range container.Publishers {
+			if publisher.PublishedPort == 0 {
+				continue
+			}
+			if published >= 1 {
+				ports.WriteString(", ")
+			}
+			portsLine := fmt.Sprintf("%s:%d->%d/%s", publisher.URL, publisher.PublishedPort, publisher.TargetPort, publisher.Protocol)
+			ports.WriteString(portsLine)
+			published += 1
+		}
+
+		fmt.Printf("%-10s %-12s %s\n", container.Service, container.State, ports.String())
+	}
+
+	return nil
+}
