@@ -14,6 +14,12 @@ services:
       PGPORT: 5432
       PGUSER: postgres
       BIND: 0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
     depends_on:
       - db
 
