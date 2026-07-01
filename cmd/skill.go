@@ -47,6 +47,12 @@ Run this before starting work that requires the container environment.
 Tears down the forked compose project for the current worktree, including
 volumes. Run this when you are done or need a clean environment.
 
+### composefork worktree ps
+Lists the containers for the current worktree's forked project, showing each
+service's state and the dynamically assigned host ports. Because ports are
+assigned dynamically at "up" time, use this to find which host ports your
+services are reachable on.
+
 ### composefork ls
 Lists all active forked compose projects across all worktrees.
 

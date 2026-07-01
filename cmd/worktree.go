@@ -26,9 +26,18 @@ var worktreeDownCmd = &cobra.Command{
 	},
 }
 
+var worktreePsCmd = &cobra.Command{
+	Use:   "ps",
+	Short: "List containers",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return internal.RunPsCommand()
+	},
+}
+
 func init() {
 	worktreeCmd.AddCommand(worktreeUpCmd)
 	worktreeCmd.AddCommand(worktreeDownCmd)
+	worktreeCmd.AddCommand(worktreePsCmd)
 
 	rootCmd.AddCommand(worktreeCmd)
 }

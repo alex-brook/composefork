@@ -10,13 +10,11 @@ import (
 	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v5/pkg/api"
-	"github.com/moby/moby/api/types/container"
-	"github.com/moby/moby/client"
 )
 
 func RunUpCommand() error {
 	// Initialize docker client
-	docker, compose, err := newClient()
+	_, compose, err := newClient()
 	if err != nil {
 		return fmt.Errorf("error initializing docker client: %w", err)
 	}
@@ -50,37 +48,7 @@ func RunUpCommand() error {
 	}
 
 	// Print project info
-	cl := docker.Client()
-	f := client.Filters{}
-	f.Add("label", fmt.Sprintf("%s=%s", api.ProjectLabel, project.Name))
-
-	containers, err := cl.ContainerList(context.Background(), client.ContainerListOptions{All: true, Filters: f})
-	if err != nil {
-		return fmt.Errorf("error listing containers: %w", err)
-	}
-
-	fmt.Println("project", project.Name, "ports")
-	for _, cont := range containers.Items {
-		exposedPorts := []container.PortSummary{}
-		for _, port := range cont.Ports {
-			if port.PublicPort == 0 {
-				continue
-			}
-			exposedPorts = append(exposedPorts, port)
-		}
-
-		if len(exposedPorts) == 0 {
-			continue
-		}
-
-		serviceName := cont.Labels[api.ServiceLabel]
-		fmt.Printf("%2s%s\n", "", serviceName)
-		for _, port := range exposedPorts {
-			fmt.Printf("%4s%-10s %d:%d\n", "", port.IP, port.PublicPort, port.PrivatePort)
-		}
-	}
-
-	return nil
+	return printProjectStatus(compose, project.Name)
 }
 
 func overrideProject(parent *types.Project) (*types.Project, error) {

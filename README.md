@@ -23,10 +23,19 @@ dynamically assigned ports, so it won't conflict with other worktrees.
 composefork worktree down
 ```
 
+### See what's running (and on which ports)
+
+```sh
+composefork worktree ps
+```
+
+Lists the services for the current worktree's project with their state and the
+dynamically assigned host ports.
+
 ### See all running forked projects
 
 ```sh
-composefork ps
+composefork ls
 ```
 
 ### Clean up after deleting a worktree
