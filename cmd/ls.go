@@ -5,14 +5,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var psCmd = &cobra.Command{
-	Use:   "ps",
+var lsCmd = &cobra.Command{
+	Use:   "ls",
 	Short: "View all projects",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return internal.RunPsCommand()
+		return internal.RunLsCommand()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(psCmd)
+	rootCmd.AddCommand(lsCmd)
 }

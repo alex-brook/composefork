@@ -8,7 +8,7 @@ import (
 	"github.com/moby/moby/client"
 )
 
-func RunPsCommand() error {
+func RunLsCommand() error {
 	docker, _, err := newClient()
 	if err != nil {
 		return fmt.Errorf("error initializing the docker client: %w", err)

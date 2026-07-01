@@ -47,7 +47,7 @@ Run this before starting work that requires the container environment.
 Tears down the forked compose project for the current worktree, including
 volumes. Run this when you are done or need a clean environment.
 
-### composefork ps
+### composefork ls
 Lists all active forked compose projects across all worktrees.
 
 ### composefork prune
