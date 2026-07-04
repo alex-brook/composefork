@@ -1,5 +1,9 @@
 version: 2
 
+before:
+  hooks:
+    - go run ./gen
+
 builds:
   - env:
       - CGO_ENABLED=0
