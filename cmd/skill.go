@@ -53,6 +53,13 @@ service's state and the dynamically assigned host ports. Because ports are
 assigned dynamically at "up" time, use this to find which host ports your
 services are reachable on.
 
+### composefork worktree exec [service] [command...]
+Runs a command inside a running service container of the current worktree's
+forked project. The session is interactive with a TTY attached, so you can open
+a shell (e.g. "composefork worktree exec app bash") or run a one-off command.
+Anything after the command, including flags, is passed straight through to the
+command rather than interpreted by composefork.
+
 ### composefork ls
 Lists all active forked compose projects across all worktrees.
 
