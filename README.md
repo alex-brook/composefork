@@ -32,6 +32,17 @@ composefork worktree ps
 Lists the services for the current worktree's project with their state and the
 dynamically assigned host ports.
 
+### Run a command in a service
+
+```sh
+composefork worktree exec <service> <command> [args...]
+```
+
+Runs a command inside a running service container for the current worktree — for
+example `composefork worktree exec app bash` to open a shell. The session is
+interactive with a TTY attached, and anything after the command (including flags)
+is passed straight through to the command.
+
 ### See all running forked projects
 
 ```sh

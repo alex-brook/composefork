@@ -34,10 +34,26 @@ var worktreePsCmd = &cobra.Command{
 	},
 }
 
+var worktreeExecCmd = &cobra.Command{
+	Use:   "exec [service] [command] [args...]",
+	Short: "Execute a command against a service",
+	Args:  cobra.MinimumNArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+
+		service := args[0]
+		command := args[1:]
+
+		return internal.RunExecCommand(service, command)
+	},
+}
+
 func init() {
+	worktreeExecCmd.Flags().SetInterspersed(false)
+
 	worktreeCmd.AddCommand(worktreeUpCmd)
 	worktreeCmd.AddCommand(worktreeDownCmd)
 	worktreeCmd.AddCommand(worktreePsCmd)
+	worktreeCmd.AddCommand(worktreeExecCmd)
 
 	rootCmd.AddCommand(worktreeCmd)
 }

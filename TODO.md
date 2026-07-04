@@ -6,7 +6,7 @@
 
 - [] The agent confused ls and ps, is there misleading docs?
 
-- [] There is no exec command, the agent has to construct a vanilla compose command with the project name
+- [x] There is no exec command, the agent has to construct a vanilla compose command with the project name
 
 - [] Volumes are not copied on fork, which means they take a long time to start
     - [] Dump to tmp file
