@@ -1,5 +1,5 @@
 - It wasn't obvious that `composefork worktree up` waits for the project to be healthy
-    - [ ] Show health as a column in project info
+    - [x] Show health as a column in project info
 
 - [] When a project container died, the agent got stuck
     - [] Add `composefork worktree restart` command
