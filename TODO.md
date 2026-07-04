@@ -1,8 +1,8 @@
 - It wasn't obvious that `composefork worktree up` waits for the project to be healthy
     - [x] Show health as a column in project info
 
-- [] When a project container died, the agent got stuck
-    - [] Add `composefork worktree restart` command
+- [x] When a project container died, the agent got stuck
+    - [x] Add `composefork worktree restart` command
 
 - [x] The agent confused ls and ps, is there misleading docs?
 

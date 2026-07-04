@@ -60,6 +60,13 @@ a shell (e.g. "composefork worktree exec app bash") or run a one-off command.
 Anything after the command, including flags, is passed straight through to the
 command rather than interpreted by composefork.
 
+### composefork worktree restart [service...]
+Restarts the running containers of the current worktree's forked compose
+project, preserving the dynamically assigned host ports. Pass one or more
+service names to restart only those services; with no arguments the whole
+project is restarted. Use this to pick up changes that require a container
+restart without a full down/up cycle.
+
 ### composefork ls
 Lists all forked compose projects across all worktrees.
 

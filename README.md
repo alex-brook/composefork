@@ -43,6 +43,16 @@ example `composefork worktree exec app bash` to open a shell. The session is
 interactive with a TTY attached, and anything after the command (including flags)
 is passed straight through to the command.
 
+### Restart the running environment
+
+```sh
+composefork worktree restart [service...]
+```
+
+Restarts the containers for the current worktree's project, keeping the same
+dynamically assigned ports. Pass service names to restart only those services,
+or none to restart everything.
+
 ### See all forked projects
 
 ```sh
