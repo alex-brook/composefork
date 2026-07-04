@@ -61,7 +61,7 @@ Anything after the command, including flags, is passed straight through to the
 command rather than interpreted by composefork.
 
 ### composefork ls
-Lists all active forked compose projects across all worktrees.
+Lists all forked compose projects across all worktrees.
 
 ### composefork prune
 Removes forked compose projects whose worktree directories no longer exist.
