@@ -43,7 +43,7 @@ example `composefork worktree exec app bash` to open a shell. The session is
 interactive with a TTY attached, and anything after the command (including flags)
 is passed straight through to the command.
 
-### See all running forked projects
+### See all forked projects
 
 ```sh
 composefork ls

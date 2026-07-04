@@ -7,7 +7,7 @@ import (
 
 var lsCmd = &cobra.Command{
 	Use:   "ls",
-	Short: "View all projects",
+	Short: "List forked projects across all worktrees",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return internal.RunLsCommand()
 	},

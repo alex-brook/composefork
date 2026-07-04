@@ -4,7 +4,7 @@
 - [] When a project container died, the agent got stuck
     - [] Add `composefork worktree restart` command
 
-- [] The agent confused ls and ps, is there misleading docs?
+- [x] The agent confused ls and ps, is there misleading docs?
 
 - [x] There is no exec command, the agent has to construct a vanilla compose command with the project name
 

@@ -28,7 +28,7 @@ var worktreeDownCmd = &cobra.Command{
 
 var worktreePsCmd = &cobra.Command{
 	Use:   "ps",
-	Short: "List containers",
+	Short: "List this worktree's services and their ports",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return internal.RunPsCommand()
 	},
