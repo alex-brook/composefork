@@ -1,8 +1,10 @@
 package internal
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -12,9 +14,12 @@ import (
 	"github.com/docker/cli/cli/flags"
 	"github.com/docker/compose/v5/pkg/api"
 	"github.com/docker/compose/v5/pkg/compose"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 )
 
 const COMPOSEFORK_LABEL = "com.github.alex-brook.composefork"
+const SYSTEM_IMAGE = "composefork/alpine"
 
 func newClient() (*command.DockerCli, api.Compose, error) {
 	client, err := command.NewDockerCli()
@@ -93,4 +98,18 @@ func printProjectStatus(compose api.Compose, name string) error {
 	}
 
 	return nil
+}
+
+func loadSystemImage(cli *command.DockerCli) (string, error) {
+	docker := cli.Client()
+
+	resp, err := docker.ImageLoad(context.Background(), bytes.NewReader(alpineTarball))
+	if err != nil {
+		return "", fmt.Errorf("error loading image: %w", err)
+	}
+	defer resp.Close()
+
+	io.Copy(io.Discard, resp)
+
+	return SYSTEM_IMAGE, nil
 }

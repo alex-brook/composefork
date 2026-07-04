@@ -8,9 +8,14 @@
 
 - [x] There is no exec command, the agent has to construct a vanilla compose command with the project name
 
+- [] Add version command
+
 - [] Volumes are not copied on fork, which means they take a long time to start
-    - [] Dump to tmp file
-    - [] Restore to new project
+    - [x] Add a new command `composefork cache`
+    - [x] Stop the parent project
+    - [] System container for these kinds of operations
+    - [] Snapshot volumes
+    - [] Use these cached volumes when creating forks
 
 - Investigate checkpoints to avoid using too much RAM
     - [] Guess memory consumption based on avg. of existing projects
