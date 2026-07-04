@@ -47,6 +47,14 @@ var worktreeExecCmd = &cobra.Command{
 	},
 }
 
+var worktreeRestartCmd = &cobra.Command{
+	Use:   "restart [service...]",
+	Short: "Restart the compose project for this worktree",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return internal.RunRestartCommand(args)
+	},
+}
+
 func init() {
 	worktreeExecCmd.Flags().SetInterspersed(false)
 
@@ -54,6 +62,7 @@ func init() {
 	worktreeCmd.AddCommand(worktreeDownCmd)
 	worktreeCmd.AddCommand(worktreePsCmd)
 	worktreeCmd.AddCommand(worktreeExecCmd)
+	worktreeCmd.AddCommand(worktreeRestartCmd)
 
 	rootCmd.AddCommand(worktreeCmd)
 }
