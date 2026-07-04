@@ -72,6 +72,8 @@ func printProjectStatus(compose api.Compose, name string) error {
 		return fmt.Errorf("error in ps: %w", err)
 	}
 
+	fmt.Printf("Project: %s\n", name)
+	fmt.Printf("%-10s %-12s %-12s %s\n", "Service", "State", "Health", "Ports")
 	for _, container := range containers {
 		var ports strings.Builder
 		published := 0
@@ -87,7 +89,7 @@ func printProjectStatus(compose api.Compose, name string) error {
 			published += 1
 		}
 
-		fmt.Printf("%-10s %-12s %s\n", container.Service, container.State, ports.String())
+		fmt.Printf("%-10s %-12s %-12s %s\n", container.Service, container.State, container.Health, ports.String())
 	}
 
 	return nil
