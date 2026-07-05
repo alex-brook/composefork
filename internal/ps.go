@@ -4,12 +4,7 @@ import (
 	"fmt"
 )
 
-func RunPsCommand() error {
-	_, compose, err := newClient()
-	if err != nil {
-		return fmt.Errorf("error initializing the docker client: %w", err)
-	}
-
+func (a *App) Ps() error {
 	// Resolve parent / master project
 	parent, err := loadProject()
 	if err != nil {
@@ -21,5 +16,5 @@ func RunPsCommand() error {
 		return fmt.Errorf("error getting project name: %w", err)
 	}
 
-	return printProjectStatus(compose, name)
+	return a.printProjectStatus(name)
 }

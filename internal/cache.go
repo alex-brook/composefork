@@ -9,18 +9,12 @@ import (
 	"path/filepath"
 
 	"github.com/compose-spec/compose-go/v2/types"
-	"github.com/docker/cli/cli/command"
 	"github.com/docker/compose/v5/pkg/api"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 )
 
-func RunCacheCommand() error {
-	docker, compose, err := newClient()
-	if err != nil {
-		return fmt.Errorf("error initializing docker client: %w", err)
-	}
-
+func (a *App) Cache() error {
 	parent, err := loadProject()
 	if err != nil {
 		return fmt.Errorf("error loading project: %w", err)
@@ -31,7 +25,7 @@ func RunCacheCommand() error {
 		return fmt.Errorf("error getting project name: %w", err)
 	}
 
-	err = compose.Down(context.Background(), name, api.DownOptions{
+	err = a.Compose.Down(context.Background(), name, api.DownOptions{
 		Volumes:       false,
 		RemoveOrphans: true,
 	})
@@ -39,7 +33,7 @@ func RunCacheCommand() error {
 		return fmt.Errorf("error tearing down project: %w", err)
 	}
 
-	err = exportVolumes(docker, parent)
+	err = a.exportVolumes(parent)
 	if err != nil {
 		return err
 	}
@@ -47,7 +41,7 @@ func RunCacheCommand() error {
 	return nil
 }
 
-func exportVolumes(cli *command.DockerCli, project *types.Project) error {
+func (a *App) exportVolumes(project *types.Project) error {
 	dir, err := os.UserCacheDir()
 	if err != nil {
 		return fmt.Errorf("error copying volumes: %w", err)
@@ -76,7 +70,7 @@ func exportVolumes(cli *command.DockerCli, project *types.Project) error {
 		commands = append(commands, inputPath, outputPath)
 	}
 
-	id, err := createSystemContainer(cli, client.ContainerCreateOptions{
+	id, err := a.createSystemContainer(client.ContainerCreateOptions{
 		Config: &container.Config{
 			Cmd: commands,
 		},
@@ -90,7 +84,7 @@ func exportVolumes(cli *command.DockerCli, project *types.Project) error {
 		return err
 	}
 
-	waitResult := cli.Client().ContainerWait(context.Background(), id, client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning})
+	waitResult := a.Client().ContainerWait(context.Background(), id, client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning})
 	select {
 	case err := <-waitResult.Error:
 		return err

@@ -9,7 +9,11 @@ var lsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "List forked projects across all worktrees",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return internal.RunLsCommand()
+		app, err := internal.NewApp()
+		if err != nil {
+			return err
+		}
+		return app.Ls()
 	},
 }
 

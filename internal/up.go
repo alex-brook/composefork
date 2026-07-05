@@ -12,19 +12,12 @@ import (
 
 	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/compose-spec/compose-go/v2/types"
-	"github.com/docker/cli/cli/command"
 	"github.com/docker/compose/v5/pkg/api"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 )
 
-func RunUpCommand() error {
-	// Initialize docker client
-	docker, compose, err := newClient()
-	if err != nil {
-		return fmt.Errorf("error initializing docker client: %w", err)
-	}
-
+func (a *App) Up() error {
 	// Resolve parent / master project
 	log.Println("Loading parent project")
 	parent, err := loadProject()
@@ -34,7 +27,7 @@ func RunUpCommand() error {
 
 	// Build the master project
 	log.Println("Building", parent.Name)
-	err = compose.Build(context.Background(), parent, api.BuildOptions{})
+	err = a.Compose.Build(context.Background(), parent, api.BuildOptions{})
 	if err != nil {
 		return fmt.Errorf("error building project: %w", err)
 	}
@@ -46,25 +39,25 @@ func RunUpCommand() error {
 		return fmt.Errorf("error creating project: %w", err)
 	}
 
-	err = compose.Create(context.Background(), project, api.CreateOptions{})
+	err = a.Compose.Create(context.Background(), project, api.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("error creating project: %w", err)
 	}
 
-	err = importVolumes(docker, parent, project)
+	err = a.importVolumes(parent, project)
 	if err != nil {
 		return fmt.Errorf("error creating project: %w", err)
 	}
 
 	// Bring a child project up
 	log.Println("Bringing up project", project.Name)
-	err = compose.Up(context.Background(), project, api.UpOptions{Create: api.CreateOptions{}, Start: api.StartOptions{Wait: true}})
+	err = a.Compose.Up(context.Background(), project, api.UpOptions{Create: api.CreateOptions{}, Start: api.StartOptions{Wait: true}})
 	if err != nil {
 		return fmt.Errorf("up error: %w", err)
 	}
 
 	// Print project info
-	return printProjectStatus(compose, project.Name)
+	return a.printProjectStatus(project.Name)
 }
 
 func overrideProject(parent *types.Project) (*types.Project, error) {
@@ -124,7 +117,7 @@ func overrideProject(parent *types.Project) (*types.Project, error) {
 	return project, nil
 }
 
-func importVolumes(docker *command.DockerCli, parent *types.Project, project *types.Project) error {
+func (a *App) importVolumes(parent *types.Project, project *types.Project) error {
 	dir, err := os.UserCacheDir()
 	if err != nil {
 		return fmt.Errorf("error copying volumes: %w", err)
@@ -168,7 +161,7 @@ func importVolumes(docker *command.DockerCli, parent *types.Project, project *ty
 		return nil
 	}
 
-	id, err := createSystemContainer(docker, client.ContainerCreateOptions{
+	id, err := a.createSystemContainer(client.ContainerCreateOptions{
 		Config: &container.Config{
 			Cmd: commands,
 		},
@@ -182,7 +175,7 @@ func importVolumes(docker *command.DockerCli, parent *types.Project, project *ty
 		return err
 	}
 
-	waitResult := docker.Client().ContainerWait(context.Background(), id, client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning})
+	waitResult := a.Client().ContainerWait(context.Background(), id, client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning})
 	select {
 	case err := <-waitResult.Error:
 		return err
@@ -192,7 +185,7 @@ func importVolumes(docker *command.DockerCli, parent *types.Project, project *ty
 		}
 	}
 
-	_, err = docker.Client().ContainerRemove(context.Background(), id, client.ContainerRemoveOptions{})
+	_, err = a.Client().ContainerRemove(context.Background(), id, client.ContainerRemoveOptions{})
 	if err != nil {
 		return err
 	}

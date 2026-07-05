@@ -10,12 +10,8 @@ import (
 	"github.com/moby/moby/client"
 )
 
-func RunPruneCommand() error {
-	docker, compose, err := newClient()
-	if err != nil {
-		return fmt.Errorf("error initializing the docker client: %w", err)
-	}
-	cl := docker.Client()
+func (a *App) Prune() error {
+	cl := a.Client()
 
 	f := client.Filters{}
 	f.Add("label", COMPOSEFORK_LABEL)
@@ -45,7 +41,7 @@ func RunPruneCommand() error {
 		}
 
 		fmt.Println("Removing ", key)
-		err = compose.Down(context.Background(), key, api.DownOptions{
+		err = a.Compose.Down(context.Background(), key, api.DownOptions{
 			Volumes:       true,
 			RemoveOrphans: true,
 			Images:        "local",
