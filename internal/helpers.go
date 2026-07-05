@@ -18,6 +18,7 @@ import (
 	"github.com/moby/moby/client"
 )
 
+const APP_NAME = "composefork"
 const COMPOSEFORK_LABEL = "com.github.alex-brook.composefork"
 const SYSTEM_IMAGE = "composefork/alpine"
 
@@ -100,16 +101,38 @@ func printProjectStatus(compose api.Compose, name string) error {
 	return nil
 }
 
-func loadSystemImage(cli *command.DockerCli) (string, error) {
+func createSystemContainer(cli *command.DockerCli, opts client.ContainerCreateOptions) (string, error) {
 	docker := cli.Client()
 
+	// Load the bundled alpine image
 	resp, err := docker.ImageLoad(context.Background(), bytes.NewReader(alpineTarball))
 	if err != nil {
 		return "", fmt.Errorf("error loading image: %w", err)
 	}
 	defer resp.Close()
-
 	io.Copy(io.Discard, resp)
 
-	return SYSTEM_IMAGE, nil
+	// Create the container
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	if opts.Config == nil {
+		opts.Config = &container.Config{}
+	}
+	if opts.HostConfig == nil {
+		opts.HostConfig = &container.HostConfig{}
+	}
+
+	opts.Config.Image = SYSTEM_IMAGE
+	opts.Config.Labels = map[string]string{COMPOSEFORK_LABEL: wd}
+	opts.HostConfig.AutoRemove = true
+	createResp, err := docker.ContainerCreate(context.Background(), opts)
+	if err != nil {
+		return "", fmt.Errorf("error creating container: %w", err)
+	}
+	_, err = docker.ContainerStart(context.Background(), createResp.ID, client.ContainerStartOptions{})
+
+	return createResp.ID, nil
 }
