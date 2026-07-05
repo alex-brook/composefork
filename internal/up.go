@@ -2,19 +2,25 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/compose-spec/compose-go/v2/types"
+	"github.com/docker/cli/cli/command"
 	"github.com/docker/compose/v5/pkg/api"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 )
 
 func RunUpCommand() error {
 	// Initialize docker client
-	_, compose, err := newClient()
+	docker, compose, err := newClient()
 	if err != nil {
 		return fmt.Errorf("error initializing docker client: %w", err)
 	}
@@ -36,6 +42,16 @@ func RunUpCommand() error {
 	// Create a child project for the worktree
 	log.Println("Creating fork project")
 	project, err := overrideProject(parent)
+	if err != nil {
+		return fmt.Errorf("error creating project: %w", err)
+	}
+
+	err = compose.Create(context.Background(), project, api.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("error creating project: %w", err)
+	}
+
+	err = importVolumes(docker, parent, project)
 	if err != nil {
 		return fmt.Errorf("error creating project: %w", err)
 	}
@@ -106,4 +122,76 @@ func overrideProject(parent *types.Project) (*types.Project, error) {
 	}
 
 	return project, nil
+}
+
+func importVolumes(docker *command.DockerCli, parent *types.Project, project *types.Project) error {
+	dir, err := os.UserCacheDir()
+	if err != nil {
+		return fmt.Errorf("error copying volumes: %w", err)
+	}
+	dir = filepath.Join(dir, APP_NAME)
+
+	binds := []string{fmt.Sprintf("%s:/cache", dir)}
+	commands := []string{"sh", "-c", `
+    set -e
+    echo "all args $@"
+    while [ "$#" -ge 2 ]; do
+      echo "copying $1 to $2"
+      tar --numeric-owner -xpf "$1" -C "$2" --strip-components=1
+      ls -la $2
+      shift 2
+    done
+  `, "foo"}
+	for _, vol := range project.Volumes {
+		// set up binds so container can find the volumes
+		binds = append(binds, fmt.Sprintf("%s:/out/%s", vol.Name, vol.Name))
+
+		// set up the commands the container will run to copy the cached
+		// snapshots into the child volumes
+		expectedTarball := fmt.Sprintf("%s_%s.tar", parent.Name, strings.TrimPrefix(vol.Name, project.Name+"_"))
+		fmt.Println(expectedTarball)
+		_, err := os.Stat(filepath.Join(dir, expectedTarball))
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		inputPath := filepath.Join("/cache", expectedTarball)
+		outputPath := filepath.Join("/out", vol.Name)
+		commands = append(commands, inputPath, outputPath)
+	}
+
+	id, err := createSystemContainer(docker, client.ContainerCreateOptions{
+		Config: &container.Config{
+			Cmd: commands,
+		},
+		HostConfig: &container.HostConfig{
+			Binds:      binds,
+			AutoRemove: false,
+			UsernsMode: "host", // Pass through uids
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	waitResult := docker.Client().ContainerWait(context.Background(), id, client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning})
+	select {
+	case err := <-waitResult.Error:
+		return err
+	case status := <-waitResult.Result:
+		if status.StatusCode != 0 {
+			return fmt.Errorf("container exited with code %d", status.StatusCode)
+		}
+	}
+
+	_, err = docker.Client().ContainerRemove(context.Background(), id, client.ContainerRemoveOptions{})
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(parent.Name, project.Name)
+
+	return nil
 }
