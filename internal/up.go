@@ -143,9 +143,6 @@ func importVolumes(docker *command.DockerCli, parent *types.Project, project *ty
     done
   `, "foo"}
 	for _, vol := range project.Volumes {
-		// set up binds so container can find the volumes
-		binds = append(binds, fmt.Sprintf("%s:/out/%s", vol.Name, vol.Name))
-
 		// set up the commands the container will run to copy the cached
 		// snapshots into the child volumes
 		expectedTarball := fmt.Sprintf("%s_%s.tar", parent.Name, strings.TrimPrefix(vol.Name, project.Name+"_"))
@@ -160,6 +157,15 @@ func importVolumes(docker *command.DockerCli, parent *types.Project, project *ty
 		inputPath := filepath.Join("/cache", expectedTarball)
 		outputPath := filepath.Join("/out", vol.Name)
 		commands = append(commands, inputPath, outputPath)
+
+		// set up binds so container can find the volumes
+		binds = append(binds, fmt.Sprintf("%s:/out/%s", vol.Name, vol.Name))
+	}
+
+	// Nothing to do, no volumes
+	fmt.Println("binds", len(binds))
+	if len(binds) <= 1 {
+		return nil
 	}
 
 	id, err := createSystemContainer(docker, client.ContainerCreateOptions{
