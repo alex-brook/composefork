@@ -8,8 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/compose-spec/compose-go/v2/cli"
-	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v5/pkg/api"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
@@ -19,41 +17,6 @@ const APP_NAME = "composefork"
 const COMPOSEFORK_LABEL = "com.github.alex-brook.composefork"
 const COMPOSEFORK_ORIGINAL_NAME_LABEL = "com.github.alex-brook.composefork.original_name"
 const SYSTEM_IMAGE = "composefork/system"
-
-func projectName(parent *types.Project) (string, string, error) {
-	oldName := parent.Name
-
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", oldName, err
-	}
-	parts := strings.Split(wd, "/")
-	dirname := parts[len(parts)-1]
-
-	return fmt.Sprintf("%s_%s", oldName, dirname), oldName, nil
-}
-
-func loadProject() (*types.Project, error) {
-	opts, err := cli.NewProjectOptions(
-		nil,
-		cli.WithOsEnv,
-		cli.WithEnvFiles(),
-		cli.WithDotEnv,
-		cli.WithConfigFileEnv,
-		cli.WithDefaultConfigPath,
-		cli.WithResolvedPaths(true),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	project, err := opts.LoadProject(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	return project, nil
-}
 
 func (a *App) printProjectStatus(name string) error {
 	containers, err := a.Compose.Ps(context.Background(), name, api.PsOptions{All: false})

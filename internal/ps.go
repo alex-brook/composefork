@@ -6,15 +6,10 @@ import (
 
 func (a *App) Ps() error {
 	// Resolve parent / master project
-	parent, err := loadProject()
+	fork, err := LoadFork()
 	if err != nil {
 		return fmt.Errorf("error loading project: %w", err)
 	}
 
-	name, _, err := projectName(parent)
-	if err != nil {
-		return fmt.Errorf("error getting project name: %w", err)
-	}
-
-	return a.printProjectStatus(name)
+	return a.printProjectStatus(fork.Name)
 }
