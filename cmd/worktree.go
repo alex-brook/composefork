@@ -14,7 +14,11 @@ var worktreeUpCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Bring up the compose project for this worktree",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return internal.RunUpCommand()
+		app, err := internal.NewApp()
+		if err != nil {
+			return err
+		}
+		return app.Up()
 	},
 }
 
@@ -22,7 +26,11 @@ var worktreeDownCmd = &cobra.Command{
 	Use:   "down",
 	Short: "Tear down the compose project for this worktree",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return internal.RunDownCommand()
+		app, err := internal.NewApp()
+		if err != nil {
+			return err
+		}
+		return app.Down()
 	},
 }
 
@@ -30,7 +38,11 @@ var worktreePsCmd = &cobra.Command{
 	Use:   "ps",
 	Short: "List this worktree's services and their ports",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return internal.RunPsCommand()
+		app, err := internal.NewApp()
+		if err != nil {
+			return err
+		}
+		return app.Ps()
 	},
 }
 
@@ -43,7 +55,11 @@ var worktreeExecCmd = &cobra.Command{
 		service := args[0]
 		command := args[1:]
 
-		return internal.RunExecCommand(service, command)
+		app, err := internal.NewApp()
+		if err != nil {
+			return err
+		}
+		return app.Exec(service, command)
 	},
 }
 
@@ -51,7 +67,11 @@ var worktreeRestartCmd = &cobra.Command{
 	Use:   "restart [service...]",
 	Short: "Restart the compose project for this worktree",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return internal.RunRestartCommand(args)
+		app, err := internal.NewApp()
+		if err != nil {
+			return err
+		}
+		return app.Restart(args)
 	},
 }
 

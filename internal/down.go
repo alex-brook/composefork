@@ -8,13 +8,7 @@ import (
 	"github.com/docker/compose/v5/pkg/api"
 )
 
-func RunDownCommand() error {
-	// Initialize docker client
-	_, compose, err := newClient()
-	if err != nil {
-		return fmt.Errorf("error initializing docker client: %w", err)
-	}
-
+func (a *App) Down() error {
 	// Resolve parent / master project
 	log.Println("Loading parent project")
 	parent, err := loadProject()
@@ -28,7 +22,7 @@ func RunDownCommand() error {
 	}
 
 	log.Println("Tearing down project", name)
-	err = compose.Down(context.Background(), name, api.DownOptions{
+	err = a.Compose.Down(context.Background(), name, api.DownOptions{
 		Volumes:       true,
 		RemoveOrphans: true,
 		Images:        "local",

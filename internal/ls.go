@@ -8,12 +8,8 @@ import (
 	"github.com/moby/moby/client"
 )
 
-func RunLsCommand() error {
-	docker, _, err := newClient()
-	if err != nil {
-		return fmt.Errorf("error initializing the docker client: %w", err)
-	}
-	cl := docker.Client()
+func (a *App) Ls() error {
+	cl := a.Client()
 
 	f := client.Filters{}
 	f.Add("label", COMPOSEFORK_LABEL)

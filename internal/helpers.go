@@ -10,10 +10,7 @@ import (
 
 	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/compose-spec/compose-go/v2/types"
-	"github.com/docker/cli/cli/command"
-	"github.com/docker/cli/cli/flags"
 	"github.com/docker/compose/v5/pkg/api"
-	"github.com/docker/compose/v5/pkg/compose"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 )
@@ -22,21 +19,6 @@ const APP_NAME = "composefork"
 const COMPOSEFORK_LABEL = "com.github.alex-brook.composefork"
 const COMPOSEFORK_ORIGINAL_NAME_LABEL = "com.github.alex-brook.composefork.original_name"
 const SYSTEM_IMAGE = "composefork/system"
-
-func newClient() (*command.DockerCli, api.Compose, error) {
-	client, err := command.NewDockerCli()
-	if err != nil {
-		return nil, nil, err
-	}
-	client.Initialize(&flags.ClientOptions{}, command.WithOutputStream(os.Stdout))
-
-	service, err := compose.NewComposeService(client, compose.WithOutputStream(os.Stdout))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return client, service, err
-}
 
 func projectName(parent *types.Project) (string, string, error) {
 	oldName := parent.Name
@@ -73,8 +55,8 @@ func loadProject() (*types.Project, error) {
 	return project, nil
 }
 
-func printProjectStatus(compose api.Compose, name string) error {
-	containers, err := compose.Ps(context.Background(), name, api.PsOptions{All: false})
+func (a *App) printProjectStatus(name string) error {
+	containers, err := a.Compose.Ps(context.Background(), name, api.PsOptions{All: false})
 	if err != nil {
 		return fmt.Errorf("error in ps: %w", err)
 	}
@@ -102,8 +84,8 @@ func printProjectStatus(compose api.Compose, name string) error {
 	return nil
 }
 
-func createSystemContainer(cli *command.DockerCli, opts client.ContainerCreateOptions) (string, error) {
-	docker := cli.Client()
+func (a *App) createSystemContainer(opts client.ContainerCreateOptions) (string, error) {
+	docker := a.Client()
 
 	// Load the bundled alpine image
 	resp, err := docker.ImageLoad(context.Background(), bytes.NewReader(systemImageTarball))

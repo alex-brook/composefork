@@ -9,7 +9,11 @@ var cacheCmd = &cobra.Command{
 	Use:   "cache",
 	Short: "Cache the volumes of your main project to improve fork start up time",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return internal.RunCacheCommand()
+		app, err := internal.NewApp()
+		if err != nil {
+			return err
+		}
+		return app.Cache()
 	},
 }
 
