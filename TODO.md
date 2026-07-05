@@ -13,8 +13,8 @@
 - [] Volumes are not copied on fork, which means they take a long time to start
     - [x] Add a new command `composefork cache`
     - [x] Stop the parent project
-    - [] System container for these kinds of operations
-    - [] Snapshot volumes
+    - [x] System container for these kinds of operations
+    - [x] Snapshot volumes
     - [] Use these cached volumes when creating forks
 
 - Investigate checkpoints to avoid using too much RAM
