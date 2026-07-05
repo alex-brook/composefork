@@ -2,5 +2,5 @@ package internal
 
 import _ "embed"
 
-//go:embed alpine_arm64.tar
-var alpineTarball []byte
+//go:embed debian_arm64.tar
+var systemImageTarball []byte
