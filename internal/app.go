@@ -11,14 +11,11 @@ import (
 	"github.com/moby/moby/client"
 )
 
-// App bundles the Docker CLI and Compose service that every command needs,
-// so handlers can hang off it as methods instead of re-initializing clients.
 type App struct {
 	Docker  *command.DockerCli
 	Compose api.Compose
 }
 
-// NewApp constructs the Docker CLI and Compose service.
 func NewApp() (*App, error) {
 	docker, err := command.NewDockerCli()
 	if err != nil {
@@ -36,7 +33,6 @@ func NewApp() (*App, error) {
 	return &App{Docker: docker, Compose: service}, nil
 }
 
-// Client returns the underlying moby API client.
 func (a *App) Client() client.APIClient {
 	return a.Docker.Client()
 }

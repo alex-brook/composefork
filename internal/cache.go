@@ -15,17 +15,12 @@ import (
 )
 
 func (a *App) Cache() error {
-	parent, err := loadProject()
+	fork, err := LoadFork()
 	if err != nil {
 		return fmt.Errorf("error loading project: %w", err)
 	}
 
-	name, _, err := projectName(parent)
-	if err != nil {
-		return fmt.Errorf("error getting project name: %w", err)
-	}
-
-	err = a.Compose.Down(context.Background(), name, api.DownOptions{
+	err = a.Compose.Down(context.Background(), fork.Name, api.DownOptions{
 		Volumes:       false,
 		RemoveOrphans: true,
 	})
@@ -33,7 +28,7 @@ func (a *App) Cache() error {
 		return fmt.Errorf("error tearing down project: %w", err)
 	}
 
-	err = a.exportVolumes(parent)
+	err = a.exportVolumes(fork.Parent)
 	if err != nil {
 		return err
 	}

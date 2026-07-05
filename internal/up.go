@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v5/pkg/api"
 	"github.com/moby/moby/api/types/container"
@@ -20,21 +19,21 @@ import (
 func (a *App) Up() error {
 	// Resolve parent / master project
 	log.Println("Loading parent project")
-	parent, err := loadProject()
+	fork, err := LoadFork()
 	if err != nil {
 		return fmt.Errorf("error loading project: %w", err)
 	}
 
 	// Build the master project
-	log.Println("Building", parent.Name)
-	err = a.Compose.Build(context.Background(), parent, api.BuildOptions{})
+	log.Println("Building", fork.Parent.Name)
+	err = a.Compose.Build(context.Background(), fork.Parent, api.BuildOptions{})
 	if err != nil {
 		return fmt.Errorf("error building project: %w", err)
 	}
 
 	// Create a child project for the worktree
 	log.Println("Creating fork project")
-	project, err := overrideProject(parent)
+	project, err := fork.Project()
 	if err != nil {
 		return fmt.Errorf("error creating project: %w", err)
 	}
@@ -44,7 +43,7 @@ func (a *App) Up() error {
 		return fmt.Errorf("error creating project: %w", err)
 	}
 
-	err = a.importVolumes(parent, project)
+	err = a.importVolumes(fork, project)
 	if err != nil {
 		return fmt.Errorf("error creating project: %w", err)
 	}
@@ -60,64 +59,7 @@ func (a *App) Up() error {
 	return a.printProjectStatus(project.Name)
 }
 
-func overrideProject(parent *types.Project) (*types.Project, error) {
-	name, oldName, err := projectName(parent)
-	if err != nil {
-		return nil, fmt.Errorf("error computing project name: %w", err)
-	}
-
-	opts, err := cli.NewProjectOptions(
-		nil,
-		cli.WithOsEnv,
-		cli.WithEnvFiles(),
-		cli.WithDotEnv,
-		cli.WithConfigFileEnv,
-		cli.WithDefaultConfigPath,
-		cli.WithResolvedPaths(true),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	opts.Environment["COMPOSE_PROJECT_NAME"] = name
-	project, err := opts.LoadProject(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, srv := range project.Services {
-		if srv.Image == "" {
-			srv.Image = fmt.Sprintf("%s-%s:%s", oldName, srv.Name, "latest")
-			srv.Build = &types.BuildConfig{}
-		}
-		for i := range srv.Ports {
-			srv.Ports[i].Published = ""
-			srv.Ports[i].HostIP = ""
-		}
-		if srv.CustomLabels == nil {
-			srv.CustomLabels = types.Labels{}
-		}
-		// Set expected compose labels for this container
-		srv.CustomLabels[api.ProjectLabel] = project.Name
-		srv.CustomLabels[api.ServiceLabel] = srv.Name
-		srv.CustomLabels[api.OneoffLabel] = "False"
-		srv.CustomLabels[api.WorkingDirLabel] = project.WorkingDir
-		srv.CustomLabels[api.ConfigFilesLabel] = strings.Join(project.ComposeFiles, ",")
-
-		srv.CustomLabels[COMPOSEFORK_LABEL] = wd
-
-		project.Services[srv.Name] = srv
-	}
-
-	return project, nil
-}
-
-func (a *App) importVolumes(parent *types.Project, project *types.Project) error {
+func (a *App) importVolumes(fork *Fork, project *types.Project) error {
 	dir, err := os.UserCacheDir()
 	if err != nil {
 		return fmt.Errorf("error copying volumes: %w", err)
@@ -138,7 +80,7 @@ func (a *App) importVolumes(parent *types.Project, project *types.Project) error
 	for _, vol := range project.Volumes {
 		// set up the commands the container will run to copy the cached
 		// snapshots into the child volumes
-		expectedTarball := fmt.Sprintf("%s_%s.tar", parent.Name, strings.TrimPrefix(vol.Name, project.Name+"_"))
+		expectedTarball := fmt.Sprintf("%s_%s.tar", fork.Parent.Name, strings.TrimPrefix(vol.Name, project.Name+"_"))
 		fmt.Println(expectedTarball)
 		_, err := os.Stat(filepath.Join(dir, expectedTarball))
 		if errors.Is(err, fs.ErrNotExist) {
@@ -190,7 +132,7 @@ func (a *App) importVolumes(parent *types.Project, project *types.Project) error
 		return err
 	}
 
-	fmt.Println(parent.Name, project.Name)
+	fmt.Println(fork.Parent.Name, project.Name)
 
 	return nil
 }

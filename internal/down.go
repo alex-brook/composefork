@@ -11,18 +11,13 @@ import (
 func (a *App) Down() error {
 	// Resolve parent / master project
 	log.Println("Loading parent project")
-	parent, err := loadProject()
+	fork, err := LoadFork()
 	if err != nil {
 		return fmt.Errorf("error loading project: %w", err)
 	}
 
-	name, _, err := projectName(parent)
-	if err != nil {
-		return fmt.Errorf("error getting project name: %w", err)
-	}
-
-	log.Println("Tearing down project", name)
-	err = a.Compose.Down(context.Background(), name, api.DownOptions{
+	log.Println("Tearing down project", fork.Name)
+	err = a.Compose.Down(context.Background(), fork.Name, api.DownOptions{
 		Volumes:       true,
 		RemoveOrphans: true,
 		Images:        "local",
