@@ -20,7 +20,8 @@ import (
 
 const APP_NAME = "composefork"
 const COMPOSEFORK_LABEL = "com.github.alex-brook.composefork"
-const SYSTEM_IMAGE = "composefork/alpine"
+const COMPOSEFORK_ORIGINAL_NAME_LABEL = "com.github.alex-brook.composefork.original_name"
+const SYSTEM_IMAGE = "composefork/system"
 
 func newClient() (*command.DockerCli, api.Compose, error) {
 	client, err := command.NewDockerCli()
@@ -105,7 +106,7 @@ func createSystemContainer(cli *command.DockerCli, opts client.ContainerCreateOp
 	docker := cli.Client()
 
 	// Load the bundled alpine image
-	resp, err := docker.ImageLoad(context.Background(), bytes.NewReader(alpineTarball))
+	resp, err := docker.ImageLoad(context.Background(), bytes.NewReader(systemImageTarball))
 	if err != nil {
 		return "", fmt.Errorf("error loading image: %w", err)
 	}
@@ -127,7 +128,7 @@ func createSystemContainer(cli *command.DockerCli, opts client.ContainerCreateOp
 
 	opts.Config.Image = SYSTEM_IMAGE
 	opts.Config.Labels = map[string]string{COMPOSEFORK_LABEL: wd}
-	opts.HostConfig.AutoRemove = true
+	// opts.HostConfig.AutoRemove = true
 	createResp, err := docker.ContainerCreate(context.Background(), opts)
 	if err != nil {
 		return "", fmt.Errorf("error creating container: %w", err)

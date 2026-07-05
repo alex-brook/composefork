@@ -8,8 +8,8 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 )
 
-const pullRef = "alpine:latest"
-const saveRef = "composefork/alpine"
+const pullRef = "debian:trixie-slim"
+const saveRef = "composefork/system"
 
 func main() {
 	for _, arch := range []string{"amd64", "arm64"} {
@@ -20,7 +20,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("pull %s: %v", arch, err)
 		}
-		out := fmt.Sprintf("internal/alpine_%s.tar", arch)
+		out := fmt.Sprintf("internal/debian_%s.tar", arch)
 		if err := crane.Save(img, saveRef, out); err != nil {
 			log.Fatalf("save %s: %v", arch, err)
 		}
