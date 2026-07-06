@@ -81,7 +81,6 @@ func (a *App) importVolumes(fork *Fork, project *types.Project) error {
 		// set up the commands the container will run to copy the cached
 		// snapshots into the child volumes
 		expectedTarball := fmt.Sprintf("%s_%s.tar", fork.Parent.Name, strings.TrimPrefix(vol.Name, project.Name+"_"))
-		fmt.Println(expectedTarball)
 		_, err := os.Stat(filepath.Join(dir, expectedTarball))
 		if errors.Is(err, fs.ErrNotExist) {
 			continue
@@ -98,7 +97,6 @@ func (a *App) importVolumes(fork *Fork, project *types.Project) error {
 	}
 
 	// Nothing to do, no volumes
-	fmt.Println("binds", len(binds))
 	if len(binds) <= 1 {
 		return nil
 	}
@@ -131,8 +129,6 @@ func (a *App) importVolumes(fork *Fork, project *types.Project) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(fork.Parent.Name, project.Name)
 
 	return nil
 }
