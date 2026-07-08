@@ -16,8 +16,8 @@ func (a *App) Exec(service string, command []string) error {
 	opts := api.RunOptions{
 		Service:     service,
 		Command:     command,
-		Tty:         true,
-		Interactive: true,
+		Tty:         false,
+		Interactive: false,
 	}
 
 	_, err = a.Compose.Exec(context.Background(), fork.Name, opts)
