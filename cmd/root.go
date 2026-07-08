@@ -8,44 +8,30 @@ import (
 	"os"
 )
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "composefork",
-	Short: "Clone a docker compose project",
-	Long: `
+var registeredCommands []func() *cobra.Command
+
+func register(c func() *cobra.Command) { registeredCommands = append(registeredCommands, c) }
+
+func newRootCmd() *cobra.Command {
+	rootCmd := &cobra.Command{
+		Use:   "composefork",
+		Short: "Clone a docker compose project",
+		Long: `
   Composefork duplicates an existing docker compose project, changing details that
   allow it to run in parallel with the original. This is useful for running parallel
   agents with your existing devcontainer environment`,
-
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) {},
+	}
+	for _, cmdFunc := range registeredCommands {
+		rootCmd.AddCommand(cmdFunc())
+	}
+	return rootCmd
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	err := rootCmd.Execute()
+	err := newRootCmd().Execute()
 	if err != nil {
 		os.Exit(1)
 	}
 }
-
-func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.composefork.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-}
-
-// composefork worktree up
-// composefork worktree down
-// composefork worktree exec [service] [cmd]
-// composefork worktree ps
-// composefork ls
-// composefork prune

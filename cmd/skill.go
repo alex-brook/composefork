@@ -75,14 +75,17 @@ Removes forked compose projects whose worktree directories no longer exist.
 Run this to clean up after deleting a worktree.
 `
 
-var skillCmd = &cobra.Command{
-	Use:   "skill",
-	Short: "Agents: read this before using composefork",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Fprint(cmd.OutOrStdout(), skillText)
-	},
+func newSkillCmd() *cobra.Command {
+	skillCmd := &cobra.Command{
+		Use:   "skill",
+		Short: "Agents: read this before using composefork",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Fprint(cmd.OutOrStdout(), skillText)
+		},
+	}
+	return skillCmd
 }
 
 func init() {
-	rootCmd.AddCommand(skillCmd)
+	register(newSkillCmd)
 }

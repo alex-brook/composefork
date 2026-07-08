@@ -12,14 +12,17 @@ var (
 	date    = "unknown"
 )
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Prints version info",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("%s (%s, %s)\n", version, commit, date)
-	},
+func newVersionCmd() *cobra.Command {
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Prints version info",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("%s (%s, %s)\n", version, commit, date)
+		},
+	}
+	return versionCmd
 }
 
 func init() {
-	rootCmd.AddCommand(versionCmd)
+	register(newVersionCmd)
 }

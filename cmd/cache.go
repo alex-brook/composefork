@@ -5,18 +5,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var cacheCmd = &cobra.Command{
-	Use:   "cache",
-	Short: "Cache the volumes of your main project to improve fork start up time",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		app, err := internal.NewApp()
-		if err != nil {
-			return err
-		}
-		return app.Cache()
-	},
+func newCacheCmd() *cobra.Command {
+	cacheCmd := &cobra.Command{
+		Use:   "cache",
+		Short: "Cache the volumes of your main project to improve fork start up time",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := internal.NewApp()
+			if err != nil {
+				return err
+			}
+			return app.Cache()
+		},
+	}
+	return cacheCmd
 }
 
 func init() {
-	rootCmd.AddCommand(cacheCmd)
+	register(newCacheCmd)
 }
