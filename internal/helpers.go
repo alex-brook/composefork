@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/docker/compose/v5/pkg/api"
@@ -14,8 +13,8 @@ import (
 )
 
 const APP_NAME = "composefork"
-const COMPOSEFORK_LABEL = "com.github.alex-brook.composefork"
-const COMPOSEFORK_ORIGINAL_NAME_LABEL = "com.github.alex-brook.composefork.original_name"
+const COMPOSEFORK_PROJECT_LABEL = "com.github.alex-brook.composefork.project"
+const COMPOSEFORK_DIR_LABEL = "com.github.alex-brook.composefork.dir"
 const SYSTEM_IMAGE = "composefork/system"
 
 func (a *App) printProjectStatus(name string) error {
@@ -47,7 +46,7 @@ func (a *App) printProjectStatus(name string) error {
 	return nil
 }
 
-func (a *App) createSystemContainer(opts client.ContainerCreateOptions) (string, error) {
+func (a *App) createSystemContainer(labels map[string]string, opts client.ContainerCreateOptions) (string, error) {
 	docker := a.Client()
 
 	// Load the bundled alpine image
@@ -58,12 +57,6 @@ func (a *App) createSystemContainer(opts client.ContainerCreateOptions) (string,
 	defer resp.Close()
 	io.Copy(io.Discard, resp)
 
-	// Create the container
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
 	if opts.Config == nil {
 		opts.Config = &container.Config{}
 	}
@@ -72,7 +65,7 @@ func (a *App) createSystemContainer(opts client.ContainerCreateOptions) (string,
 	}
 
 	opts.Config.Image = SYSTEM_IMAGE
-	opts.Config.Labels = map[string]string{COMPOSEFORK_LABEL: wd}
+	opts.Config.Labels = labels
 	// opts.HostConfig.AutoRemove = true
 	createResp, err := docker.ContainerCreate(context.Background(), opts)
 	if err != nil {

@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -41,15 +42,26 @@ func (f *Fork) Project() (*types.Project, error) {
 	if err != nil {
 		return nil, err
 	}
-	applyForkOverrides(project, f.Parent.Name, f.WorkingDir)
+	applyForkOverrides(project, f.Parent.Name, f.Labels())
 	return project, nil
+}
+
+func projectLabels(projectName, dir string) map[string]string {
+	return map[string]string{
+		COMPOSEFORK_PROJECT_LABEL: projectName, // shared group id / discovery marker
+		COMPOSEFORK_DIR_LABEL:     dir,         // dir path (prune's existence check)
+	}
+}
+
+func (f *Fork) Labels() map[string]string {
+	return projectLabels(f.Parent.Name, f.WorkingDir)
 }
 
 func forkName(parentName, workingDir string) string {
 	return fmt.Sprintf("%s_%s", parentName, filepath.Base(workingDir))
 }
 
-func applyForkOverrides(project *types.Project, parentName, workingDir string) {
+func applyForkOverrides(project *types.Project, parentName string, labels map[string]string) {
 	for _, srv := range project.Services {
 		if srv.Image == "" {
 			srv.Image = fmt.Sprintf("%s-%s:%s", parentName, srv.Name, "latest")
@@ -69,7 +81,7 @@ func applyForkOverrides(project *types.Project, parentName, workingDir string) {
 		srv.CustomLabels[api.WorkingDirLabel] = project.WorkingDir
 		srv.CustomLabels[api.ConfigFilesLabel] = strings.Join(project.ComposeFiles, ",")
 
-		srv.CustomLabels[COMPOSEFORK_LABEL] = workingDir
+		maps.Copy(srv.CustomLabels, labels)
 
 		project.Services[srv.Name] = srv
 	}

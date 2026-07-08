@@ -14,7 +14,7 @@ func (a *App) Prune() error {
 	cl := a.Client()
 
 	f := client.Filters{}
-	f.Add("label", COMPOSEFORK_LABEL)
+	f.Add("label", COMPOSEFORK_PROJECT_LABEL)
 
 	containers, err := cl.ContainerList(context.Background(), client.ContainerListOptions{All: true, Filters: f})
 	if err != nil {
@@ -28,7 +28,7 @@ func (a *App) Prune() error {
 		if ok {
 			continue
 		}
-		location := item.Labels[COMPOSEFORK_LABEL]
+		location := item.Labels[COMPOSEFORK_DIR_LABEL]
 		set[projectName] = location
 	}
 

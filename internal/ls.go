@@ -12,7 +12,7 @@ func (a *App) Ls() error {
 	cl := a.Client()
 
 	f := client.Filters{}
-	f.Add("label", COMPOSEFORK_LABEL)
+	f.Add("label", COMPOSEFORK_PROJECT_LABEL)
 
 	containers, err := cl.ContainerList(context.Background(), client.ContainerListOptions{All: true, Filters: f})
 	if err != nil {
