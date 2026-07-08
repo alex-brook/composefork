@@ -22,6 +22,9 @@ services:
       start_period: 90s
     depends_on:
       - db
+    networks:
+      - default
+      - gem_net
 
   db:
     image: docker.io/library/postgres:17
@@ -33,3 +36,8 @@ services:
 volumes:
   bundle_data:
   postgres_data:
+
+
+networks:
+  gem_net:
+    external: true
