@@ -5,18 +5,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var lsCmd = &cobra.Command{
-	Use:   "ls",
-	Short: "List forked projects across all worktrees",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		app, err := internal.NewApp()
-		if err != nil {
-			return err
-		}
-		return app.Ls()
-	},
+func newLsCmd() *cobra.Command {
+	lsCmd := &cobra.Command{
+		Use:   "ls",
+		Short: "List forked projects across all worktrees",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := internal.NewApp()
+			if err != nil {
+				return err
+			}
+			return app.Ls()
+		},
+	}
+	return lsCmd
 }
 
 func init() {
-	rootCmd.AddCommand(lsCmd)
+	register(newLsCmd)
 }
