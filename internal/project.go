@@ -62,7 +62,7 @@ func forkName(parentName, workingDir string) string {
 }
 
 func applyForkOverrides(project *types.Project, parentName string, labels map[string]string) {
-	for _, srv := range project.Services {
+	for name, srv := range project.Services {
 		if srv.Image == "" {
 			srv.Image = fmt.Sprintf("%s-%s:%s", parentName, srv.Name, "latest")
 			srv.Build = &types.BuildConfig{}
@@ -83,7 +83,23 @@ func applyForkOverrides(project *types.Project, parentName string, labels map[st
 
 		maps.Copy(srv.CustomLabels, labels)
 
-		project.Services[srv.Name] = srv
+		project.Services[name] = srv
+	}
+
+	for name, vol := range project.Volumes {
+		if vol.CustomLabels == nil {
+			vol.CustomLabels = types.Labels{}
+		}
+		maps.Copy(vol.CustomLabels, labels)
+		project.Volumes[name] = vol
+	}
+
+	for name, net := range project.Networks {
+		if net.CustomLabels == nil {
+			net.CustomLabels = types.Labels{}
+		}
+		maps.Copy(net.CustomLabels, labels)
+		project.Networks[name] = net
 	}
 }
 

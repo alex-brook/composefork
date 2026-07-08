@@ -15,7 +15,7 @@ var registeredCommands []func() *cobra.Command
 
 func register(c func() *cobra.Command) { registeredCommands = append(registeredCommands, c) }
 
-func newRootCmd() *cobra.Command {
+func NewRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "composefork",
 		Short: "Clone a docker compose project",
