@@ -101,7 +101,7 @@ func (a *App) importVolumes(fork *Fork, project *types.Project) error {
 		return nil
 	}
 
-	id, err := a.createSystemContainer(client.ContainerCreateOptions{
+	id, err := a.createSystemContainer(fork.Labels(), client.ContainerCreateOptions{
 		Config: &container.Config{
 			Cmd: commands,
 		},

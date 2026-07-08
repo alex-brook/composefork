@@ -65,7 +65,7 @@ func (a *App) exportVolumes(project *types.Project) error {
 		commands = append(commands, inputPath, outputPath)
 	}
 
-	id, err := a.createSystemContainer(client.ContainerCreateOptions{
+	id, err := a.createSystemContainer(projectLabels(project.Name, project.WorkingDir), client.ContainerCreateOptions{
 		Config: &container.Config{
 			Cmd: commands,
 		},
