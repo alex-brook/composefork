@@ -74,8 +74,6 @@ func run(m *testing.M) int {
 	}
 	defer os.Chdir(oldWd)
 
-	// Start a service gemstash container
-
 	return m.Run()
 }
 
