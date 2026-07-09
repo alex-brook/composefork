@@ -3,12 +3,13 @@ package internal
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/docker/compose/v5/pkg/api"
 	"github.com/moby/moby/client"
 )
 
-func (a *App) Ls() error {
+func (a *App) Ls(w io.Writer) error {
 	cl := a.Client()
 
 	f := client.Filters{}
@@ -33,7 +34,7 @@ func (a *App) Ls() error {
 	}
 
 	for _, result := range results {
-		fmt.Println(result)
+		fmt.Fprintln(w, result)
 	}
 
 	return nil

@@ -14,7 +14,7 @@ func newLsCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return app.Ls()
+			return app.Ls(cmd.OutOrStdout())
 		},
 	}
 	return lsCmd
