@@ -4,8 +4,10 @@ Copyright © 2026 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"github.com/spf13/cobra"
+	"errors"
 	"os"
+
+	"github.com/spf13/cobra"
 )
 
 var registeredCommands []func() *cobra.Command
@@ -27,11 +29,23 @@ func newRootCmd() *cobra.Command {
 	return rootCmd
 }
 
+type CodeError struct {
+	Code int
+	Err  error
+}
+
+func (e *CodeError) Error() string { return e.Err.Error() }
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	err := newRootCmd().Execute()
-	if err != nil {
+	var codeErr *CodeError
+	if err == nil {
+		return
+	} else if errors.As(err, &codeErr) {
+		os.Exit(codeErr.Code)
+	} else {
 		os.Exit(1)
 	}
 }
