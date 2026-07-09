@@ -64,7 +64,13 @@ func newWorktreeExecCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return app.Exec(service, command)
+			code, err := app.Exec(service, command)
+			if err != nil {
+				cmd.SilenceUsage = true
+				cmd.SilenceErrors = true
+				return &CodeError{Code: code, Err: err}
+			}
+			return nil
 		},
 	}
 	worktreeExecCmd.Flags().SetInterspersed(false)
