@@ -96,8 +96,11 @@ func setupTest(t *testing.T) string {
 		log.Fatalf("couldn't copy dummy: %v", err)
 	}
 
-	// Create a .env that points to the devcontainer
-	runName := strings.Split(dir, "/")[1]
+	// Create a .env that points to the devcontainer. Derive a project name from
+	// t.TempDir's unique-per-run parent segment (the leaf is only a per-call
+	// counter), lowercased for compose. This isolates each run — a shared name
+	// lets an interrupted run's leftovers collide with (and poison) later runs.
+	runName := strings.ToLower(filepath.Base(filepath.Dir(dir)))
 	var buf bytes.Buffer
 	template.
 		Must(template.New("dotenv").Parse(dotEnvTemplate)).
