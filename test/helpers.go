@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -16,53 +17,35 @@ import (
 	"github.com/alex-brook/composefork/internal"
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/flags"
-	"github.com/docker/compose/v5/pkg/api"
 	"github.com/moby/moby/client"
 )
 
-// primeParent brings the parent compose project up (building as needed) and
-// waits for it to become healthy, populating its volumes the way a normal
-// `docker compose up` would, then stops it leaving the volumes in place for
-// `cache` to snapshot. Registers cleanup that removes the parent and its
-// volumes. Uses the same compose library the app itself does.
+// primeParent brings the parent project up and waits for health so its volumes
+// are populated the way a normal `docker compose up` would, then stops it
+// leaving the volumes for `cache` to snapshot. Registers cleanup that removes
+// the parent and its volumes.
+//
+// This shells out to `docker compose` (rather than the compose library used
+// elsewhere) because the library can't run this authored, build-based parent
+// project the way the CLI does — the CLI handles build→image resolution and
+// depends_on sequencing that the library only does for the app's already
+// image-resolved fork projects.
 func primeParent(t *testing.T) {
 	t.Helper()
-	ctx := context.Background()
+	t.Cleanup(func() { composeParent(t, "down", "-v") })
+	composeParent(t, "up", "-d", "--wait")
+	composeParent(t, "down") // remove containers, keep the primed volumes
+}
 
-	app, err := internal.NewApp()
-	if err != nil {
-		t.Fatalf("creating app: %v", err)
-	}
-	fork, err := internal.LoadFork()
-	if err != nil {
-		t.Fatalf("loading parent project: %v", err)
-	}
-	parent := fork.Parent
-
-	down := func() error {
-		return app.Compose.Down(ctx, parent.Name, api.DownOptions{Volumes: true, RemoveOrphans: true})
-	}
-	// The parent project name is reused across runs and its containers carry no
-	// composefork label (so setupTest's cleanup won't catch them). Clear any
-	// leftovers up front, and tear down on the way out.
-	_ = down()
-	t.Cleanup(func() {
-		if err := down(); err != nil {
-			t.Errorf("tearing down parent: %v", err)
-		}
-	})
-
-	if err := app.Compose.Build(ctx, parent, api.BuildOptions{}); err != nil {
-		t.Fatalf("building parent: %v", err)
-	}
-	// Up with Create creates and starts in one call (production splits them only
-	// to seed volumes in between, which priming doesn't need).
-	if err := app.Compose.Up(ctx, parent, api.UpOptions{Create: api.CreateOptions{}, Start: api.StartOptions{Wait: true}}); err != nil {
-		t.Fatalf("bringing up parent: %v", err)
-	}
-	// Stop the parent but keep its now-primed volumes for `cache` to snapshot.
-	if err := app.Compose.Down(ctx, parent.Name, api.DownOptions{Volumes: false, RemoveOrphans: true}); err != nil {
-		t.Fatalf("stopping parent: %v", err)
+// composeParent runs `docker compose <args>` against the parent project in the
+// test's working dir (using the .env setupTest wrote).
+func composeParent(t *testing.T, args ...string) {
+	t.Helper()
+	cmd := exec.Command("docker", append([]string{"compose"}, args...)...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("docker compose %v: %v", args, err)
 	}
 }
 

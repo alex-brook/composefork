@@ -6,17 +6,13 @@ import (
 
 func TestHelp(t *testing.T) {
 	setupTest(t)
-	_, err := executeCommand(t, "help")
-	if err != nil {
-		t.Fatalf("composefork help: %v", err)
-	}
-}
 
-func TestFoo(t *testing.T) {
-	setupTest(t)
+	out, err := executeCommand(t, "help")
+	assertNoError(t, err)
+	assertContains(t, out, "worktree")
+	assertNotContains(t, out, "panic")
 
-	_, err := executeCommand(t, "worktree", "up")
-	if err != nil {
-		t.Fatalf("composefork help: %v", err)
-	}
+	// setupTest generated a .env pointing at the devcontainer compose file.
+	assertFileExists(t, ".env")
+	assertFileContains(t, ".env", "COMPOSE_FILE=.devcontainer/compose.yml")
 }
