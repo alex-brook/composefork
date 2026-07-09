@@ -33,7 +33,7 @@ func NewRootCmd() *cobra.Command {
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	err := newRootCmd().Execute()
+	err := NewRootCmd().Execute()
 	if err == nil {
 		return
 	} else if codeErr, ok := errors.AsType[cli.StatusError](err); ok {
