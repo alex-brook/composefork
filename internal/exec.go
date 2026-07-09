@@ -6,10 +6,10 @@ import (
 	"github.com/docker/compose/v5/pkg/api"
 )
 
-func (a *App) Exec(service string, command []string) (int, error) {
+func (a *App) Exec(service string, command []string) error {
 	fork, err := LoadFork()
 	if err != nil {
-		return 1, fmt.Errorf("error loading project: %w", err)
+		return fmt.Errorf("error loading project: %w", err)
 	}
 
 	opts := api.RunOptions{
@@ -19,6 +19,10 @@ func (a *App) Exec(service string, command []string) (int, error) {
 		Interactive: false,
 	}
 
-	code, err := a.Compose.Exec(context.Background(), fork.Name, opts)
-	return code, err
+	_, err = a.Compose.Exec(context.Background(), fork.Name, opts)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

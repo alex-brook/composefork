@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"errors"
+
 	"github.com/alex-brook/composefork/internal"
+	"github.com/docker/cli/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -64,13 +67,16 @@ func newWorktreeExecCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			code, err := app.Exec(service, command)
-			if err != nil {
-				cmd.SilenceUsage = true
+			err = app.Exec(service, command)
+			if err == nil {
+				return nil
+			} else if statusErr, ok := errors.AsType[cli.StatusError](err); ok {
 				cmd.SilenceErrors = true
-				return &CodeError{Code: code, Err: err}
+				cmd.SilenceUsage = true
+				return statusErr
 			}
-			return nil
+
+			return err
 		},
 	}
 	worktreeExecCmd.Flags().SetInterspersed(false)

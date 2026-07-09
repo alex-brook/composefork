@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 
+	"github.com/docker/cli/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -29,22 +30,14 @@ func newRootCmd() *cobra.Command {
 	return rootCmd
 }
 
-type CodeError struct {
-	Code int
-	Err  error
-}
-
-func (e *CodeError) Error() string { return e.Err.Error() }
-
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	err := newRootCmd().Execute()
-	var codeErr *CodeError
 	if err == nil {
 		return
-	} else if errors.As(err, &codeErr) {
-		os.Exit(codeErr.Code)
+	} else if codeErr, ok := errors.AsType[cli.StatusError](err); ok {
+		os.Exit(codeErr.StatusCode)
 	} else {
 		os.Exit(1)
 	}
