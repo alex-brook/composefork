@@ -49,16 +49,23 @@ func composeParent(t *testing.T, args ...string) {
 	}
 }
 
+// runGit runs a git command in dir, wiring output through and failing the test
+// on error.
+func runGit(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("git %v: %v", args, err)
+	}
+}
+
 // initGitRepo makes dir a git repository so the app's main-worktree detection
 // has a repo to inspect.
 func initGitRepo(t *testing.T, dir string) {
 	t.Helper()
-	cmd := exec.Command("git", "-C", dir, "init")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git init: %v", err)
-	}
+	runGit(t, dir, "init")
 }
 
 // dockerClient builds a Docker API client for querying/cleaning up test
@@ -90,45 +97,118 @@ func executeCommand(t *testing.T, args ...string) (string, error) {
 	return buf.String(), err
 }
 
-// setupTest prepares an isolated project in a temp dir and registers Docker
-// cleanup. It returns the project name (the composefork.project label value)
-// so assertions can be scoped to this test's resources.
-func setupTest(t *testing.T) string {
+// newRepo makes an isolated git repo in a temp dir and registers Docker cleanup,
+// returning the repo dir and the derived project (parent) name. It does not copy
+// the project files or change directory — callers do that for whichever working
+// dir (main checkout or linked worktree) the test exercises.
+func newRepo(t *testing.T) (dir, project string) {
 	t.Helper()
 
 	// Isolate the cache dir (os.UserCacheDir honors XDG_CACHE_HOME on Linux) so
 	// cold-up sees no cache and the cache command never touches the real ~/.cache.
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 
-	// Setup temp dir. The app detects the main checkout vs. a linked worktree
-	// via git, so the project needs a real repo to run in. This is the main
-	// worktree; worktree helpers come later.
-	dir := t.TempDir()
+	// The app detects the main checkout vs. a linked worktree via git, so the
+	// project needs a real repo to run in.
+	dir = t.TempDir()
 	initGitRepo(t, dir)
 
-	// Copy the dummy project contents into our test project
+	// Derive a project name from t.TempDir's unique-per-run parent segment (the
+	// leaf is only a per-call counter), lowercased for compose. This isolates each
+	// run — a shared name lets an interrupted run's leftovers collide with (and
+	// poison) later runs.
+	project = strings.ToLower(filepath.Base(filepath.Dir(dir)))
+
+	t.Cleanup(func() { cleanupDocker(t, project) })
+
+	return dir, project
+}
+
+// populateProject copies the dummy compose project into dir and writes a .env
+// pointing at it with the given project name.
+func populateProject(t *testing.T, dir, project string) {
+	t.Helper()
+
 	if err := os.CopyFS(dir, os.DirFS("dummy")); err != nil {
 		log.Fatalf("couldn't copy dummy: %v", err)
 	}
 
-	// Create a .env that points to the devcontainer. Derive a project name from
-	// t.TempDir's unique-per-run parent segment (the leaf is only a per-call
-	// counter), lowercased for compose. This isolates each run — a shared name
-	// lets an interrupted run's leftovers collide with (and poison) later runs.
-	runName := strings.ToLower(filepath.Base(filepath.Dir(dir)))
 	var buf bytes.Buffer
 	template.
 		Must(template.New("dotenv").Parse(dotEnvTemplate)).
-		Execute(&buf, struct{ ProjectName string }{ProjectName: runName})
+		Execute(&buf, struct{ ProjectName string }{ProjectName: project})
 	if err := os.WriteFile(filepath.Join(dir, ".env"), buf.Bytes(), 0644); err != nil {
 		log.Fatalf("couldn't create .env: %v", err)
 	}
+}
 
+// addWorktree creates a linked git worktree named `name` off the repo at repoDir
+// and returns its path. A worktree checks out a commit, so the repo needs a HEAD;
+// an empty one is created the first time (the checkout is empty — populateProject
+// writes the project files afterward). Distinct names give isolated worktrees:
+// separate branches and, via forkName, separate compose project names.
+func addWorktree(t *testing.T, repoDir, name string) string {
+	t.Helper()
+
+	if exec.Command("git", "-C", repoDir, "rev-parse", "--verify", "-q", "HEAD").Run() != nil {
+		runGit(t, repoDir,
+			"-c", "user.email=test@example.com", "-c", "user.name=test",
+			"commit", "--allow-empty", "-m", "init")
+	}
+
+	wt := filepath.Join(t.TempDir(), name)
+	runGit(t, repoDir, "worktree", "add", wt)
+
+	return wt
+}
+
+// fork is a linked worktree and the compose project name it runs under.
+type fork struct {
+	dir     string
+	project string
+}
+
+// setupForksTest prepares an isolated repo with one linked worktree per name,
+// each populated as a fork. It returns the parent project name (the label value
+// assertions filter on) and the forks. It does not change directory — callers
+// chdir into a fork before driving the app there.
+func setupForksTest(t *testing.T, names ...string) (parent string, forks []fork) {
+	t.Helper()
+
+	dir, parent := newRepo(t)
+	for _, name := range names {
+		wt := addWorktree(t, dir, name)
+		populateProject(t, wt, parent)
+		forks = append(forks, fork{dir: wt, project: parent + "-" + name})
+	}
+
+	return parent, forks
+}
+
+// setupTest prepares an isolated project in the main worktree and registers
+// Docker cleanup. It returns the project name (the composefork.project label
+// value) so assertions can be scoped to this test's resources.
+func setupTest(t *testing.T) string {
+	t.Helper()
+
+	dir, project := newRepo(t)
+	populateProject(t, dir, project)
 	t.Chdir(dir)
 
-	t.Cleanup(func() { cleanupDocker(t, runName) })
+	return project
+}
 
-	return runName
+// setupWorktreeTest prepares an isolated project in a single real linked git
+// worktree, exercising the fork path, and chdirs into it. It returns the parent
+// project name (the label value assertions filter on) and the fork's own compose
+// project name.
+func setupWorktreeTest(t *testing.T) (project, fork string) {
+	t.Helper()
+
+	parent, forks := setupForksTest(t, "feature")
+	t.Chdir(forks[0].dir)
+
+	return parent, forks[0].project
 }
 
 func cleanupDocker(t *testing.T, projectName string) {

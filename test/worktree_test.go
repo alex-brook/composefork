@@ -51,3 +51,53 @@ func TestWorktree(t *testing.T) {
 		assertNoContainers(t, project)
 	})
 }
+
+// TestForkUp brings the project up from a real linked git worktree — the fork
+// path, where it runs under its own compose project name rather than the parent's.
+func TestForkUp(t *testing.T) {
+	project, fork := setupWorktreeTest(t)
+
+	_, err := executeCommand(t, "worktree", "up")
+	assertNoError(t, err)
+	assertContainerRunning(t, project, "web")
+	assertContainerRunning(t, project, "db")
+	assertServiceHealthy(t, project, "web")
+
+	// The fork runs under its own project name (parent-feature), not the parent's.
+	out, err := executeCommand(t, "ls")
+	assertNoError(t, err)
+	assertContains(t, out, fork)
+
+	_, err = executeCommand(t, "worktree", "down")
+	assertNoError(t, err)
+	assertNoContainers(t, project)
+}
+
+// TestParallelForks brings up two linked worktrees so they run at the same time,
+// verifying forks are isolated: each gets its own compose project name and, with
+// published ports stripped, they don't collide on host ports. The app reads its
+// project from the process working dir, so the two are brought up one after the
+// other — but both stay up together.
+func TestParallelForks(t *testing.T) {
+	parent, forks := setupForksTest(t, "feature-a", "feature-b")
+
+	for _, f := range forks {
+		t.Chdir(f.dir)
+		_, err := executeCommand(t, "worktree", "up")
+		assertNoError(t, err)
+	}
+
+	// Both forks are up at once, each under its own project name.
+	out, err := executeCommand(t, "ls")
+	assertNoError(t, err)
+	assertContains(t, out, forks[0].project)
+	assertContains(t, out, forks[1].project)
+	assertServiceHealthy(t, parent, "web") // matches both forks' web containers
+
+	for _, f := range forks {
+		t.Chdir(f.dir)
+		_, err := executeCommand(t, "worktree", "down")
+		assertNoError(t, err)
+	}
+	assertNoContainers(t, parent)
+}
