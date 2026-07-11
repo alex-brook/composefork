@@ -13,13 +13,14 @@ import (
 	"github.com/docker/compose/v5/pkg/api"
 )
 
-type Fork struct {
+type Project struct {
 	Parent     *types.Project // the compose project as authored
-	Name       string         // fork project name: {Parent.Name}_{basename(WorkingDir)}
+	Name       string         // project name: parent's in the main worktree, {Parent.Name}-{basename(WorkingDir)} in a fork
 	WorkingDir string         // absolute working directory, resolved once
+	Root       bool
 }
 
-func LoadFork() (*Fork, error) {
+func NewProject() (*Project, error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		return nil, err
@@ -30,19 +31,36 @@ func LoadFork() (*Fork, error) {
 		return nil, err
 	}
 
-	return &Fork{
-		Parent:     parent,
-		Name:       forkName(parent.Name, wd),
-		WorkingDir: wd,
-	}, nil
-}
-
-func (f *Fork) Project() (*types.Project, error) {
-	project, err := loadComposeProject(f.Name)
+	mainWorktree, err := inMainWorktree()
 	if err != nil {
 		return nil, err
 	}
-	applyForkOverrides(project, f.Parent.Name, f.Labels())
+
+	var name string
+	if mainWorktree {
+		name = parent.Name
+	} else {
+		name = forkName(parent.Name, wd)
+	}
+
+	return &Project{
+		Parent:     parent,
+		Name:       name,
+		WorkingDir: wd,
+		Root:       mainWorktree,
+	}, nil
+}
+
+func (p *Project) Load() (*types.Project, error) {
+	project, err := loadComposeProject(p.Name)
+	if err != nil {
+		return nil, err
+	}
+	applyLabels(project, p.Labels())
+	if !p.Root {
+		applyForkOverrides(project, p.Parent.Name)
+	}
+
 	return project, nil
 }
 
@@ -53,39 +71,31 @@ func projectLabels(projectName, dir string) map[string]string {
 	}
 }
 
-func (f *Fork) Labels() map[string]string {
-	return projectLabels(f.Parent.Name, f.WorkingDir)
+func (p *Project) Labels() map[string]string {
+	return projectLabels(p.Parent.Name, p.WorkingDir)
 }
 
 func forkName(parentName, workingDir string) string {
-	return fmt.Sprintf("%s_%s", parentName, filepath.Base(workingDir))
+	return fmt.Sprintf("%s-%s", parentName, filepath.Base(workingDir))
 }
 
-func applyForkOverrides(project *types.Project, parentName string, labels map[string]string) {
+func applyLabels(project *types.Project, labels map[string]string) {
 	for name, srv := range project.Services {
-		if srv.Image == "" {
-			srv.Image = fmt.Sprintf("%s-%s:%s", parentName, srv.Name, "latest")
-			srv.Build = &types.BuildConfig{}
-		}
-		for i := range srv.Ports {
-			srv.Ports[i].Published = ""
-			srv.Ports[i].HostIP = ""
-		}
 		if srv.CustomLabels == nil {
 			srv.CustomLabels = types.Labels{}
 		}
-		// Set expected compose labels for this container
+		// Default labels
 		srv.CustomLabels[api.ProjectLabel] = project.Name
 		srv.CustomLabels[api.ServiceLabel] = srv.Name
 		srv.CustomLabels[api.OneoffLabel] = "False"
 		srv.CustomLabels[api.WorkingDirLabel] = project.WorkingDir
 		srv.CustomLabels[api.ConfigFilesLabel] = strings.Join(project.ComposeFiles, ",")
 
+		// Custom labels
 		maps.Copy(srv.CustomLabels, labels)
 
 		project.Services[name] = srv
 	}
-
 	for name, vol := range project.Volumes {
 		if vol.CustomLabels == nil {
 			vol.CustomLabels = types.Labels{}
@@ -100,6 +110,23 @@ func applyForkOverrides(project *types.Project, parentName string, labels map[st
 		}
 		maps.Copy(net.CustomLabels, labels)
 		project.Networks[name] = net
+	}
+}
+
+func applyForkOverrides(project *types.Project, parentName string) {
+	for name, srv := range project.Services {
+		for i := range srv.Ports {
+			srv.Ports[i].Published = ""
+			srv.Ports[i].HostIP = ""
+		}
+		project.Services[name] = srv
+	}
+	for name, srv := range project.Services {
+		if srv.Image == "" {
+			srv.Image = fmt.Sprintf("%s-%s:%s", parentName, srv.Name, "latest")
+			srv.Build = &types.BuildConfig{}
+		}
+		project.Services[name] = srv
 	}
 }
 

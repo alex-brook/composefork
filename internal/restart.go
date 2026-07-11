@@ -8,12 +8,12 @@ import (
 )
 
 func (a *App) Restart(services []string) error {
-	fork, err := LoadFork()
+	project, err := NewProject()
 	if err != nil {
 		return fmt.Errorf("error loading project: %w", err)
 	}
 
-	err = a.Compose.Restart(context.Background(), fork.Name, api.RestartOptions{
+	err = a.Compose.Restart(context.Background(), project.Name, api.RestartOptions{
 		Services: services,
 	})
 	if err != nil {

@@ -49,6 +49,18 @@ func composeParent(t *testing.T, args ...string) {
 	}
 }
 
+// initGitRepo makes dir a git repository so the app's main-worktree detection
+// has a repo to inspect.
+func initGitRepo(t *testing.T, dir string) {
+	t.Helper()
+	cmd := exec.Command("git", "-C", dir, "init")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
+}
+
 // dockerClient builds a Docker API client for querying/cleaning up test
 // resources. Fatal on failure — every caller needs a working daemon.
 func dockerClient(t *testing.T) client.APIClient {
@@ -88,8 +100,11 @@ func setupTest(t *testing.T) string {
 	// cold-up sees no cache and the cache command never touches the real ~/.cache.
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 
-	// Setup temp dir
+	// Setup temp dir. The app detects the main checkout vs. a linked worktree
+	// via git, so the project needs a real repo to run in. This is the main
+	// worktree; worktree helpers come later.
 	dir := t.TempDir()
+	initGitRepo(t, dir)
 
 	// Copy the dummy project contents into our test project
 	if err := os.CopyFS(dir, os.DirFS("dummy")); err != nil {

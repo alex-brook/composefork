@@ -19,47 +19,47 @@ import (
 func (a *App) Up() error {
 	// Resolve parent / master project
 	log.Println("Loading parent project")
-	fork, err := LoadFork()
+	project, err := NewProject()
 	if err != nil {
 		return fmt.Errorf("error loading project: %w", err)
 	}
 
 	// Build the master project
-	log.Println("Building", fork.Parent.Name)
-	err = a.Compose.Build(context.Background(), fork.Parent, api.BuildOptions{})
+	log.Println("Building", project.Parent.Name)
+	err = a.Compose.Build(context.Background(), project.Parent, api.BuildOptions{})
 	if err != nil {
 		return fmt.Errorf("error building project: %w", err)
 	}
 
-	// Create a child project for the worktree
-	log.Println("Creating fork project")
-	project, err := fork.Project()
+	composeProject, err := project.Load()
 	if err != nil {
 		return fmt.Errorf("error creating project: %w", err)
 	}
 
-	err = a.Compose.Create(context.Background(), project, api.CreateOptions{})
+	err = a.Compose.Create(context.Background(), composeProject, api.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("error creating project: %w", err)
 	}
 
-	err = a.importVolumes(fork, project)
-	if err != nil {
-		return fmt.Errorf("error creating project: %w", err)
+	if !project.Root {
+		err = a.importVolumes(project, composeProject)
+		if err != nil {
+			return fmt.Errorf("error creating project: %w", err)
+		}
 	}
 
 	// Bring a child project up
-	log.Println("Bringing up project", project.Name)
-	err = a.Compose.Up(context.Background(), project, api.UpOptions{Create: api.CreateOptions{}, Start: api.StartOptions{Wait: true}})
+	log.Println("Bringing up project", composeProject.Name)
+	err = a.Compose.Up(context.Background(), composeProject, api.UpOptions{Create: api.CreateOptions{}, Start: api.StartOptions{Wait: true}})
 	if err != nil {
 		return fmt.Errorf("up error: %w", err)
 	}
 
 	// Print project info
-	return a.printProjectStatus(project.Name)
+	return a.printProjectStatus(composeProject.Name)
 }
 
-func (a *App) importVolumes(fork *Fork, project *types.Project) error {
+func (a *App) importVolumes(project *Project, composeProject *types.Project) error {
 	dir, err := os.UserCacheDir()
 	if err != nil {
 		return fmt.Errorf("error copying volumes: %w", err)
@@ -77,10 +77,10 @@ func (a *App) importVolumes(fork *Fork, project *types.Project) error {
       shift 2
     done
   `, "foo"}
-	for _, vol := range project.Volumes {
+	for _, vol := range composeProject.Volumes {
 		// set up the commands the container will run to copy the cached
 		// snapshots into the child volumes
-		expectedTarball := fmt.Sprintf("%s_%s.tar", fork.Parent.Name, strings.TrimPrefix(vol.Name, project.Name+"_"))
+		expectedTarball := fmt.Sprintf("%s_%s.tar", project.Parent.Name, strings.TrimPrefix(vol.Name, composeProject.Name+"_"))
 		_, err := os.Stat(filepath.Join(dir, expectedTarball))
 		if errors.Is(err, fs.ErrNotExist) {
 			continue
@@ -101,7 +101,7 @@ func (a *App) importVolumes(fork *Fork, project *types.Project) error {
 		return nil
 	}
 
-	id, err := a.createSystemContainer(fork.Labels(), client.ContainerCreateOptions{
+	id, err := a.createSystemContainer(project.Labels(), client.ContainerCreateOptions{
 		Config: &container.Config{
 			Cmd: commands,
 		},
