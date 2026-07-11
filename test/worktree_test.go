@@ -11,7 +11,7 @@ func TestWorktree(t *testing.T) {
 	project := setupTest(t)
 
 	t.Run("up cold", func(t *testing.T) {
-		_, err := executeCommand(t, "worktree", "up")
+		_, err := executeCommand(t, "up")
 		assertNoError(t, err)
 
 		assertContainerRunning(t, project, "web")
@@ -22,7 +22,7 @@ func TestWorktree(t *testing.T) {
 	})
 
 	t.Run("ps", func(t *testing.T) {
-		_, err := executeCommand(t, "worktree", "ps")
+		_, err := executeCommand(t, "ps")
 		assertNoError(t, err)
 	})
 
@@ -33,12 +33,12 @@ func TestWorktree(t *testing.T) {
 	})
 
 	t.Run("exec", func(t *testing.T) {
-		_, err := executeCommand(t, "worktree", "exec", "web", "true")
+		_, err := executeCommand(t, "exec", "web", "true")
 		assertNoError(t, err)
 	})
 
 	t.Run("restart", func(t *testing.T) {
-		_, err := executeCommand(t, "worktree", "restart")
+		_, err := executeCommand(t, "restart")
 		assertNoError(t, err)
 		// Running again; not asserting healthy — restart resets the 90s health
 		// start period, so healthy here would flake.
@@ -46,7 +46,7 @@ func TestWorktree(t *testing.T) {
 	})
 
 	t.Run("down", func(t *testing.T) {
-		_, err := executeCommand(t, "worktree", "down")
+		_, err := executeCommand(t, "down")
 		assertNoError(t, err)
 		assertNoContainers(t, project)
 	})
@@ -57,7 +57,7 @@ func TestWorktree(t *testing.T) {
 func TestForkUp(t *testing.T) {
 	project, fork := setupWorktreeTest(t)
 
-	_, err := executeCommand(t, "worktree", "up")
+	_, err := executeCommand(t, "up")
 	assertNoError(t, err)
 	assertContainerRunning(t, project, "web")
 	assertContainerRunning(t, project, "db")
@@ -68,7 +68,7 @@ func TestForkUp(t *testing.T) {
 	assertNoError(t, err)
 	assertContains(t, out, fork)
 
-	_, err = executeCommand(t, "worktree", "down")
+	_, err = executeCommand(t, "down")
 	assertNoError(t, err)
 	assertNoContainers(t, project)
 }
@@ -83,7 +83,7 @@ func TestParallelForks(t *testing.T) {
 
 	for _, f := range forks {
 		t.Chdir(f.dir)
-		_, err := executeCommand(t, "worktree", "up")
+		_, err := executeCommand(t, "up")
 		assertNoError(t, err)
 	}
 
@@ -96,7 +96,7 @@ func TestParallelForks(t *testing.T) {
 
 	for _, f := range forks {
 		t.Chdir(f.dir)
-		_, err := executeCommand(t, "worktree", "down")
+		_, err := executeCommand(t, "down")
 		assertNoError(t, err)
 	}
 	assertNoContainers(t, parent)

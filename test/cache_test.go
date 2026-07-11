@@ -6,7 +6,7 @@ import (
 
 // TestCache exercises the with-cache path: prime the parent project's volumes by
 // running it normally (docker compose up), snapshot them with `cache`, then a
-// fork imports the snapshot on `worktree up`. Mirrors the intended workflow —
+// fork imports the snapshot on `up`. Mirrors the intended workflow —
 // cache the primed parent, then start forks faster from it.
 func TestCache(t *testing.T) {
 	project := setupTest(t)
@@ -24,11 +24,11 @@ func TestCache(t *testing.T) {
 	}
 
 	// A fork now starts from the cached volumes and comes up healthy.
-	_, err = executeCommand(t, "worktree", "up")
+	_, err = executeCommand(t, "up")
 	assertNoError(t, err)
 	assertServiceHealthy(t, project, "web")
 
-	_, err = executeCommand(t, "worktree", "down")
+	_, err = executeCommand(t, "down")
 	assertNoError(t, err)
 	assertNoContainers(t, project)
 }

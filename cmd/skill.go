@@ -36,31 +36,31 @@ All commands must be run from inside your worktree directory.
 The forked project is named {original_project}_{worktree_dirname}, so each
 worktree gets its own isolated namespace automatically.
 
-### composefork worktree up
+### composefork up
 Brings up a forked copy of the compose project for the current worktree.
 Port bindings are assigned dynamically (no fixed host ports), so multiple
 worktrees can run simultaneously without conflict.
 
 Run this before starting work that requires the container environment.
 
-### composefork worktree down
+### composefork down
 Tears down the forked compose project for the current worktree, including
 volumes. Run this when you are done or need a clean environment.
 
-### composefork worktree ps
+### composefork ps
 Lists the containers for the current worktree's forked project, showing each
 service's state and the dynamically assigned host ports. Because ports are
 assigned dynamically at "up" time, use this to find which host ports your
 services are reachable on.
 
-### composefork worktree exec [service] [command...]
+### composefork exec [service] [command...]
 Runs a command inside a running service container of the current worktree's
 forked project. The session is interactive with a TTY attached, so you can open
-a shell (e.g. "composefork worktree exec app bash") or run a one-off command.
+a shell (e.g. "composefork exec app bash") or run a one-off command.
 Anything after the command, including flags, is passed straight through to the
 command rather than interpreted by composefork.
 
-### composefork worktree restart [service...]
+### composefork restart [service...]
 Restarts the running containers of the current worktree's forked compose
 project, preserving the dynamically assigned host ports. Pass one or more
 service names to restart only those services; with no arguments the whole
