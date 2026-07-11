@@ -11,9 +11,9 @@ func TestForkName(t *testing.T) {
 	cases := []struct {
 		parent, dir, want string
 	}{
-		{"app", "/home/user/wt", "app_wt"},
-		{"app", "/home/user/wt/", "app_wt"}, // Base strips the trailing slash
-		{"myproj", "/tmp/feature-x", "myproj_feature-x"},
+		{"app", "/home/user/wt", "app-wt"},
+		{"app", "/home/user/wt/", "app-wt"}, // Base strips the trailing slash
+		{"myproj", "/tmp/feature-x", "myproj-feature-x"},
 	}
 	for _, c := range cases {
 		if got := forkName(c.parent, c.dir); got != c.want {
@@ -23,7 +23,7 @@ func TestForkName(t *testing.T) {
 }
 
 func TestForkLabels(t *testing.T) {
-	f := &Fork{Parent: &types.Project{Name: "app"}, WorkingDir: "/tmp/wt"}
+	f := &Project{Parent: &types.Project{Name: "app"}, WorkingDir: "/tmp/wt"}
 	got := f.Labels()
 	want := map[string]string{
 		COMPOSEFORK_PROJECT_LABEL: "app",

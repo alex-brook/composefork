@@ -17,7 +17,7 @@
     - [x] Snapshot volumes
     - [x] Use these cached volumes when creating forks
 
-- [] Running `composefork up` in the main worktree should be equivalent to docker compose up
+- [x] Running `composefork up` in the main worktree should be equivalent to docker compose up
 
 - [] Each fork should build its own image, not just use the parent image
     - [] Fork images should be removed when the project is torn down
