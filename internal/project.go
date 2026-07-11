@@ -121,13 +121,13 @@ func applyForkOverrides(project *types.Project, parentName string) {
 		}
 		project.Services[name] = srv
 	}
-	for name, srv := range project.Services {
-		if srv.Image == "" {
-			srv.Image = fmt.Sprintf("%s-%s:%s", parentName, srv.Name, "latest")
-			srv.Build = &types.BuildConfig{}
-		}
-		project.Services[name] = srv
-	}
+	// for name, srv := range project.Services {
+	// 	if srv.Image == "" {
+	// 		srv.Image = fmt.Sprintf("%s-%s:%s", parentName, srv.Name, "latest")
+	// 		srv.Build = &types.BuildConfig{}
+	// 	}
+	// 	project.Services[name] = srv
+	// }
 }
 
 func loadComposeProject(name string) (*types.Project, error) {
