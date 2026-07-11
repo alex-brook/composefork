@@ -9,7 +9,8 @@ func TestHelp(t *testing.T) {
 
 	out, err := executeCommand(t, "help")
 	assertNoError(t, err)
-	assertContains(t, out, "worktree")
+	assertContains(t, out, "up")
+	assertContains(t, out, "restart")
 	assertNotContains(t, out, "panic")
 
 	// setupTest generated a .env pointing at the devcontainer compose file.
