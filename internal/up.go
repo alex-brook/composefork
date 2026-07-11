@@ -24,16 +24,16 @@ func (a *App) Up() error {
 		return fmt.Errorf("error loading project: %w", err)
 	}
 
-	// Build the master project
-	log.Println("Building", project.Parent.Name)
-	err = a.Compose.Build(context.Background(), project.Parent, api.BuildOptions{})
-	if err != nil {
-		return fmt.Errorf("error building project: %w", err)
-	}
-
 	composeProject, err := project.Load()
 	if err != nil {
 		return fmt.Errorf("error creating project: %w", err)
+	}
+
+	// Build the master project
+	log.Println("Building", composeProject.Name)
+	err = a.Compose.Build(context.Background(), composeProject, api.BuildOptions{})
+	if err != nil {
+		return fmt.Errorf("error building project: %w", err)
 	}
 
 	err = a.Compose.Create(context.Background(), composeProject, api.CreateOptions{})
