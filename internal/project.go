@@ -17,10 +17,9 @@ type Project struct {
 	Parent     *types.Project // the compose project as authored
 	Name       string         // project name: parent's in the main worktree, {Parent.Name}-{basename(WorkingDir)} in a fork
 	WorkingDir string         // absolute working directory, resolved once
-	Root       bool
 }
 
-func NewProject() (*Project, error) {
+func NewProject(customName string) (*Project, error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		return nil, err
@@ -37,7 +36,9 @@ func NewProject() (*Project, error) {
 	}
 
 	var name string
-	if mainWorktree {
+	if customName != "" {
+		name = customName
+	} else if mainWorktree {
 		name = parent.Name
 	} else {
 		name = forkName(parent.Name, wd)
@@ -47,8 +48,11 @@ func NewProject() (*Project, error) {
 		Parent:     parent,
 		Name:       name,
 		WorkingDir: wd,
-		Root:       mainWorktree,
 	}, nil
+}
+
+func (p *Project) Root() bool {
+	return p.Name == p.Parent.Name
 }
 
 func (p *Project) Load() (*types.Project, error) {
@@ -57,7 +61,7 @@ func (p *Project) Load() (*types.Project, error) {
 		return nil, err
 	}
 	applyLabels(project, p.Labels())
-	if !p.Root {
+	if !p.Root() {
 		applyForkOverrides(project, p.Parent.Name)
 	}
 
@@ -121,13 +125,6 @@ func applyForkOverrides(project *types.Project, parentName string) {
 		}
 		project.Services[name] = srv
 	}
-	// for name, srv := range project.Services {
-	// 	if srv.Image == "" {
-	// 		srv.Image = fmt.Sprintf("%s-%s:%s", parentName, srv.Name, "latest")
-	// 		srv.Build = &types.BuildConfig{}
-	// 	}
-	// 	project.Services[name] = srv
-	// }
 }
 
 func loadComposeProject(name string) (*types.Project, error) {

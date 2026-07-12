@@ -11,12 +11,20 @@ func inMainWorktree() (bool, error) {
 		return false, err
 	}
 
-	commonDir, err := git("rev-parse", "--path-format=absolute", "--git-common-dir")
+	commonDir, err := projectRoot()
 	if err != nil {
 		return false, err
 	}
 
 	return gitDir == commonDir, nil
+}
+
+func projectRoot() (string, error) {
+	commonDir, err := git("rev-parse", "--path-format=absolute", "--git-common-dir")
+	if err != nil {
+		return "", err
+	}
+	return commonDir, nil
 }
 
 func git(args ...string) (string, error) {

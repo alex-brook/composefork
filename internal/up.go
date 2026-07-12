@@ -19,7 +19,7 @@ import (
 func (a *App) Up() error {
 	// Resolve parent / master project
 	log.Println("Loading parent project")
-	project, err := NewProject()
+	project, err := NewProject("")
 	if err != nil {
 		return fmt.Errorf("error loading project: %w", err)
 	}
@@ -41,11 +41,9 @@ func (a *App) Up() error {
 		return fmt.Errorf("error creating project: %w", err)
 	}
 
-	if !project.Root {
-		err = a.importVolumes(project, composeProject)
-		if err != nil {
-			return fmt.Errorf("error creating project: %w", err)
-		}
+	err = a.importVolumes(project, composeProject)
+	if err != nil {
+		return fmt.Errorf("error creating project: %w", err)
 	}
 
 	// Bring a child project up

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -132,6 +133,33 @@ func assertVolumeGone(t *testing.T, project, name string) {
 	if len(forkVolumes(t, project, name)) != 0 {
 		t.Fatalf("expected volume %q in project %q to be gone, still present", name, project)
 	}
+}
+
+// --- Images ---------------------------------------------------------------
+
+// assertImageEnv finds the image Compose built for the given fork project and
+// asserts its baked-in environment contains want (e.g. "KEY=value"). Built
+// images carry Compose's own project label, so we scope to the fork by that.
+func assertImageEnv(t *testing.T, project, want string) {
+	t.Helper()
+	f := make(client.Filters).Add("label", "com.docker.compose.project="+project)
+	list, err := dockerClient(t).ImageList(context.Background(), client.ImageListOptions{Filters: f})
+	if err != nil {
+		t.Fatalf("listing images for project %q: %v", project, err)
+	}
+	if len(list.Items) == 0 {
+		t.Fatalf("expected a built image for project %q, found none", project)
+	}
+	for _, img := range list.Items {
+		res, err := dockerClient(t).ImageInspect(context.Background(), img.ID)
+		if err != nil {
+			t.Fatalf("inspecting image %s: %v", img.ID, err)
+		}
+		if res.Config != nil && slices.Contains(res.Config.Env, want) {
+			return
+		}
+	}
+	t.Fatalf("no image for project %q has env %q", project, want)
 }
 
 // --- Service health -------------------------------------------------------

@@ -162,6 +162,23 @@ func addWorktree(t *testing.T, repoDir, name string) string {
 	return wt
 }
 
+// bakeMarker appends an instruction to the worktree's Dockerfile that bakes a
+// unique marker into the built image, so a test can prove the image was rebuilt
+// from this worktree's own source. Appended last so prior build layers stay
+// cached.
+func bakeMarker(t *testing.T, dir, marker string) {
+	t.Helper()
+	path := filepath.Join(dir, ".devcontainer", "Dockerfile")
+	fh, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		t.Fatalf("opening %q: %v", path, err)
+	}
+	defer fh.Close()
+	if _, err := fmt.Fprintf(fh, "\nENV COMPOSEFORK_MARKER=%s\n", marker); err != nil {
+		t.Fatalf("writing marker to %q: %v", path, err)
+	}
+}
+
 // fork is a linked worktree and the compose project name it runs under.
 type fork struct {
 	dir     string

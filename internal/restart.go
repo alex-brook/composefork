@@ -8,7 +8,7 @@ import (
 )
 
 func (a *App) Restart(services []string) error {
-	project, err := NewProject()
+	project, err := NewProject("")
 	if err != nil {
 		return fmt.Errorf("error loading project: %w", err)
 	}
