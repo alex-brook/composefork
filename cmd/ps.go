@@ -10,7 +10,7 @@ func newPsCmd() *cobra.Command {
 		Use:   "ps",
 		Short: "List this worktree's services and their ports",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			app, err := internal.NewApp()
+			app, err := internal.NewApp(cmd.OutOrStdout())
 			if err != nil {
 				return err
 			}

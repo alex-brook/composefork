@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,7 +17,7 @@ import (
 
 func (a *App) Up() error {
 	// Resolve parent / master project
-	log.Println("Loading parent project")
+	a.Log.Println("Loading parent project")
 	project, err := NewProject("")
 	if err != nil {
 		return fmt.Errorf("error loading project: %w", err)
@@ -30,7 +29,7 @@ func (a *App) Up() error {
 	}
 
 	// Build the master project
-	log.Println("Building", composeProject.Name)
+	a.Log.Println("Building", composeProject.Name)
 	err = a.Compose.Build(context.Background(), composeProject, api.BuildOptions{})
 	if err != nil {
 		return fmt.Errorf("error building project: %w", err)
@@ -47,7 +46,7 @@ func (a *App) Up() error {
 	}
 
 	// Bring a child project up
-	log.Println("Bringing up project", composeProject.Name)
+	a.Log.Println("Bringing up project", composeProject.Name)
 	err = a.Compose.Up(context.Background(), composeProject, api.UpOptions{Create: api.CreateOptions{}, Start: api.StartOptions{Wait: true}})
 	if err != nil {
 		return fmt.Errorf("up error: %w", err)

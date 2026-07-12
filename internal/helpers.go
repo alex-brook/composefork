@@ -23,8 +23,8 @@ func (a *App) printProjectStatus(name string) error {
 		return fmt.Errorf("error in ps: %w", err)
 	}
 
-	fmt.Printf("Project: %s\n", name)
-	fmt.Printf("%-10s %-12s %-12s %s\n", "Service", "State", "Health", "Ports")
+	fmt.Fprintf(a.Out, "Project: %s\n", name)
+	fmt.Fprintf(a.Out, "%-10s %-12s %-12s %s\n", "Service", "State", "Health", "Ports")
 	for _, container := range containers {
 		var ports strings.Builder
 		published := 0
@@ -40,7 +40,7 @@ func (a *App) printProjectStatus(name string) error {
 			published += 1
 		}
 
-		fmt.Printf("%-10s %-12s %-12s %s\n", container.Service, container.State, container.Health, ports.String())
+		fmt.Fprintf(a.Out, "%-10s %-12s %-12s %s\n", container.Service, container.State, container.Health, ports.String())
 	}
 
 	return nil

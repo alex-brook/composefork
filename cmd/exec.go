@@ -18,7 +18,7 @@ func newExecCmd() *cobra.Command {
 			service := args[0]
 			command := args[1:]
 
-			app, err := internal.NewApp()
+			app, err := internal.NewApp(cmd.OutOrStdout())
 			if err != nil {
 				return err
 			}

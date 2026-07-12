@@ -31,6 +31,10 @@
 
 - [] Expose forked services on 127.0.0.1
 
+- [] Add a verbose flag
+
+- [] Add tests to CI
+
 - Investigate checkpoints to avoid using too much RAM
     - [] Guess memory consumption based on avg. of existing projects
     - [] Decide if we will go over the allocated docker RAM with a new fork

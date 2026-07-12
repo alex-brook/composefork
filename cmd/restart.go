@@ -10,7 +10,7 @@ func newRestartCmd() *cobra.Command {
 		Use:   "restart [service...]",
 		Short: "Restart the compose project for this worktree",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			app, err := internal.NewApp()
+			app, err := internal.NewApp(cmd.OutOrStdout())
 			if err != nil {
 				return err
 			}
