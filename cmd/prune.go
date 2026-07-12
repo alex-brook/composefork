@@ -10,7 +10,7 @@ func newPruneCmd() *cobra.Command {
 		Use:   "prune",
 		Short: "Remove orphaned project that have had their worktree deleted",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			app, err := internal.NewApp()
+			app, err := internal.NewApp(cmd.OutOrStdout())
 			if err != nil {
 				return err
 			}

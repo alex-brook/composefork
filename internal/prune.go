@@ -40,7 +40,7 @@ func (a *App) Prune() error {
 			return err
 		}
 
-		fmt.Println("Removing ", key)
+		fmt.Fprintln(a.Out, "Removing", key)
 		err = a.Compose.Down(context.Background(), key, api.DownOptions{
 			Volumes:       true,
 			RemoveOrphans: true,

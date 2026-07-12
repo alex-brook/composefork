@@ -52,6 +52,27 @@ func TestWorktree(t *testing.T) {
 	})
 }
 
+// TestExecCapturesOutput proves command output flows through the writer threaded
+// into the app rather than escaping to os.Stdout: it execs a command in a service
+// and finds its stdout in the captured buffer. It also confirms the app's log
+// diagnostics ("Building") are captured on the up call.
+func TestExecCapturesOutput(t *testing.T) {
+	project := setupTest(t)
+
+	out, err := executeCommand(t, "up")
+	assertNoError(t, err)
+	assertServiceHealthy(t, project, "web")
+	assertContains(t, out, "Building") // a.Log diagnostic reached the writer
+
+	out, err = executeCommand(t, "exec", "web", "sh", "-c", "echo composefork-marker")
+	assertNoError(t, err)
+	assertContains(t, out, "composefork-marker")
+
+	_, err = executeCommand(t, "down")
+	assertNoError(t, err)
+	assertNoContainers(t, project)
+}
+
 // TestForkUp brings the project up from a real linked git worktree — the fork
 // path, where it runs under its own compose project name rather than the parent's.
 func TestForkUp(t *testing.T) {

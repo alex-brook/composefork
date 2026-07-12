@@ -10,7 +10,7 @@ func newDownCmd() *cobra.Command {
 		Use:   "down",
 		Short: "Tear down the compose project for this worktree",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			app, err := internal.NewApp()
+			app, err := internal.NewApp(cmd.OutOrStdout())
 			if err != nil {
 				return err
 			}

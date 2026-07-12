@@ -3,7 +3,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +16,7 @@ import (
 )
 
 func (a *App) Cache() error {
-	log.Println("Creating a volume cache...")
+	a.Log.Println("Creating a volume cache...")
 
 	// We change directory to the project root so we always prepare caches based
 	// off the main worktree. A child worktree could've made changes to the dependencies
@@ -30,7 +29,7 @@ func (a *App) Cache() error {
 	if err != nil {
 		return err
 	}
-	log.Println("Switched dir to", rootDir)
+	a.Log.Println("Switched dir to", rootDir)
 
 	randomName := namesgenerator.GetRandomName(0)
 
@@ -159,7 +158,7 @@ func (a *App) exportVolumes(dir string, project *types.Project) ([]string, error
 		}
 	}
 
-	log.Println("Finished caching")
+	a.Log.Println("Finished caching")
 	return results, nil
 }
 
