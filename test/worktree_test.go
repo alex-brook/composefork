@@ -73,6 +73,30 @@ func TestForkUp(t *testing.T) {
 	assertNoContainers(t, project)
 }
 
+// TestForkBuildsOwnImage proves a child worktree builds its own image from its
+// own modified source: it appends a unique marker to the fork's Dockerfile,
+// brings the fork up, and checks the image Compose built for that fork carries
+// the marker.
+func TestForkBuildsOwnImage(t *testing.T) {
+	parent, forks := setupForksTest(t, "feature")
+	f := forks[0]
+	marker := f.project // unique to this fork
+
+	bakeMarker(t, f.dir, marker)
+
+	t.Chdir(f.dir)
+	_, err := executeCommand(t, "up")
+	assertNoError(t, err)
+	assertServiceHealthy(t, parent, "web")
+
+	// The fork built its own image from its modified Dockerfile.
+	assertImageEnv(t, f.project, "COMPOSEFORK_MARKER="+marker)
+
+	_, err = executeCommand(t, "down")
+	assertNoError(t, err)
+	assertNoContainers(t, parent)
+}
+
 // TestParallelForks brings up two linked worktrees so they run at the same time,
 // verifying forks are isolated: each gets its own compose project name and, with
 // published ports stripped, they don't collide on host ports. The app reads its

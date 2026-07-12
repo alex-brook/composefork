@@ -7,7 +7,7 @@ import (
 )
 
 func (a *App) Exec(service string, command []string) error {
-	project, err := NewProject()
+	project, err := NewProject("")
 	if err != nil {
 		return fmt.Errorf("error loading project: %w", err)
 	}
