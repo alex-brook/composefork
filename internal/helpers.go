@@ -55,7 +55,10 @@ func (a *App) createSystemContainer(labels map[string]string, opts client.Contai
 		return "", fmt.Errorf("error loading image: %w", err)
 	}
 	defer resp.Close()
-	io.Copy(io.Discard, resp)
+	_, err = io.Copy(io.Discard, resp)
+	if err != nil {
+		return "", fmt.Errorf("error loading image: %w", err)
+	}
 
 	if opts.Config == nil {
 		opts.Config = &container.Config{}
@@ -66,12 +69,14 @@ func (a *App) createSystemContainer(labels map[string]string, opts client.Contai
 
 	opts.Config.Image = SYSTEM_IMAGE
 	opts.Config.Labels = labels
-	// opts.HostConfig.AutoRemove = true
 	createResp, err := docker.ContainerCreate(context.Background(), opts)
 	if err != nil {
 		return "", fmt.Errorf("error creating container: %w", err)
 	}
 	_, err = docker.ContainerStart(context.Background(), createResp.ID, client.ContainerStartOptions{})
+	if err != nil {
+		return "", fmt.Errorf("error creating container: %w", err)
+	}
 
 	return createResp.ID, nil
 }
