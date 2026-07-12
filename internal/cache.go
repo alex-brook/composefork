@@ -20,6 +20,10 @@ func (a *App) Cache() error {
 
 	// We change directory to the project root so we always prepare caches based
 	// off the main worktree. A child worktree could've made changes to the dependencies
+	originalDir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
 	commonDir, err := projectRoot()
 	if err != nil {
 		return err
@@ -29,6 +33,7 @@ func (a *App) Cache() error {
 	if err != nil {
 		return err
 	}
+	defer os.Chdir(originalDir)
 	a.Log.Println("Switched dir to", rootDir)
 
 	randomName := namesgenerator.GetRandomName(0)
@@ -54,6 +59,9 @@ func (a *App) Cache() error {
 	}
 
 	err = a.Compose.Up(context.Background(), composeProject, api.UpOptions{Create: api.CreateOptions{}, Start: api.StartOptions{Wait: true}})
+	if err != nil {
+		return fmt.Errorf("error bringing up project: %w", err)
+	}
 
 	err = a.Compose.Stop(context.Background(), composeProject.Name, api.StopOptions{})
 	if err != nil {
@@ -79,7 +87,7 @@ func (a *App) Cache() error {
 		return fmt.Errorf("error tearing down project: %w", err)
 	}
 
-	withDirLock(dir, func() error {
+	err = withDirLock(dir, func() error {
 		for _, tarballPath := range tarballPaths {
 			newPath := strings.ReplaceAll(tarballPath, randomName, project.Parent.Name)
 			err := os.Rename(tarballPath, newPath)
@@ -89,6 +97,9 @@ func (a *App) Cache() error {
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
