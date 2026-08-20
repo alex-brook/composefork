@@ -64,16 +64,8 @@ func (a *App) importVolumes(project *Project, composeProject *types.Project) err
 	dir = filepath.Join(dir, APP_NAME)
 
 	binds := []string{fmt.Sprintf("%s:/cache", dir)}
-	commands := []string{"sh", "-c", `
-    set -e
-    echo "all args $@"
-    while [ "$#" -ge 2 ]; do
-      echo "copying $1 to $2"
-      tar --numeric-owner -xpf "$1" -C "$2" --strip-components=1
-      ls -la $2
-      shift 2
-    done
-  `, "foo"}
+
+	commands := []string{"import"}
 	for _, vol := range composeProject.Volumes {
 		// set up the commands the container will run to copy the cached
 		// snapshots into the child volumes
@@ -87,7 +79,7 @@ func (a *App) importVolumes(project *Project, composeProject *types.Project) err
 		}
 		inputPath := filepath.Join("/cache", expectedTarball)
 		outputPath := filepath.Join("/out", vol.Name)
-		commands = append(commands, inputPath, outputPath)
+		commands = append(commands, fmt.Sprintf("%s:%s", inputPath, outputPath))
 
 		// set up binds so container can find the volumes
 		binds = append(binds, fmt.Sprintf("%s:/out/%s", vol.Name, vol.Name))

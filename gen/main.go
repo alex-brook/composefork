@@ -4,7 +4,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/moby/go-archive"
@@ -12,16 +11,18 @@ import (
 )
 
 func main() {
-	name := filepath.Base(os.Args[0])
+	if len(os.Args) < 2 {
+		log.Fatal("usage: runner import|export <src>:<dst>...")
+	}
 
 	var isImporting bool
-	switch name {
+	switch os.Args[1] {
 	case "import":
 		isImporting = true
 	case "export":
 		isImporting = false
 	default:
-		log.Fatalf("unknown mode: %s", name)
+		log.Fatalf("unknown mode: %s", os.Args[1])
 	}
 
 	if isImporting {
@@ -30,7 +31,7 @@ func main() {
 		log.Println("Exporting...")
 	}
 
-	for _, pair := range os.Args[1:] {
+	for _, pair := range os.Args[2:] {
 		arg1, arg2, ok := strings.Cut(pair, ":")
 		if !ok {
 			log.Fatalf("invalid pair: %q", pair)
