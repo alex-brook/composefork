@@ -4,18 +4,28 @@
 based devcontainer configuration with parallel agents. It works by cloning the
 original compose project and namespacing it for a single worktree
 
-## Usage
+`composefork` complements a traditional development workflow. The original
+worktree and compose project is reserved for you to work on manually.
+
+## Prerequisites
+- Docker installed on your system
+- Claude Desktop or a similar tool that manages worktrees and chat threads
+- A project configured with a docker compose devcontainer, check out the dummy app if you are unsure as to what this looks like.
+
+## Getting started
+- A static binary is available on the releases page
+- Instruct agents to use `composefork` to manage the project in your AGENTS.md or similar. You may want to use `composefork skill` as a baseline
+- Add a hook to your agent orchestrator to run `composefork down` when you close a chat thread
+- Run `composefork cache` if your services have health checks, this makes bringing up a new stack faster and more reliable
+
+## Reference
 
 ### Start a forked environment for a worktree
 
 ```sh
-git worktree add ../my-feature my-feature-branch
-cd ../my-feature
+cd ./.claude/worktrees/my-feature
 composefork up
 ```
-
-This creates another compose project named `<original>_my-feature` with
-dynamically assigned ports, so it won't conflict with other worktrees.
 
 ### Tear it down when you're done
 
