@@ -1,29 +1,81 @@
 package main
 
 import (
-	"fmt"
+	"io"
 	"log"
+	"os"
+	"path/filepath"
+	"strings"
 
-	"github.com/google/go-containerregistry/pkg/crane"
-	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/moby/go-archive"
+	"github.com/moby/go-archive/compression"
 )
 
-const pullRef = "debian:trixie-slim"
-const saveRef = "composefork/system"
-
 func main() {
-	for _, arch := range []string{"amd64", "arm64"} {
-		img, err := crane.Pull(pullRef, crane.WithPlatform(&v1.Platform{
-			OS:           "linux",
-			Architecture: arch,
-		}))
-		if err != nil {
-			log.Fatalf("pull %s: %v", arch, err)
-		}
-		out := fmt.Sprintf("internal/debian_%s.tar", arch)
-		if err := crane.Save(img, saveRef, out); err != nil {
-			log.Fatalf("save %s: %v", arch, err)
-		}
-		log.Printf("wrote %s", out)
+	name := filepath.Base(os.Args[0])
+
+	var isImporting bool
+	switch name {
+	case "import":
+		isImporting = true
+	case "export":
+		isImporting = false
+	default:
+		log.Fatalf("unknown mode: %s", name)
 	}
+
+	if isImporting {
+		log.Println("Importing...")
+	} else {
+		log.Println("Exporting...")
+	}
+
+	for _, pair := range os.Args[1:] {
+		arg1, arg2, ok := strings.Cut(pair, ":")
+		if !ok {
+			log.Fatalf("invalid pair: %q", pair)
+		}
+
+		log.Println(arg1, "->", arg2)
+		var err error
+		if isImporting {
+			err = Import(arg1, arg2)
+		} else {
+			err = Export(arg1, arg2)
+		}
+		if err != nil {
+			log.Fatalf("error: %v", err)
+		}
+	}
+}
+
+func Import(from, to string) error {
+	f, err := os.Open(from)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return archive.Untar(f, to, &archive.TarOptions{})
+}
+
+func Export(from, to string) error {
+	r, err := archive.Tar(from, compression.Gzip)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	out, err := os.Create(to)
+	if err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(out, r); err != nil {
+		out.Close()
+		os.Remove(to)
+		return err
+	}
+
+	return out.Close()
 }

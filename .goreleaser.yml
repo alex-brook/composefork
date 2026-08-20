@@ -2,7 +2,7 @@ version: 2
 
 before:
   hooks:
-    - go run ./gen
+    - ./gen/gen.sh
 
 builds:
   - env:
