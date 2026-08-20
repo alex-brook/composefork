@@ -127,21 +127,14 @@ func (a *App) exportVolumes(dir string, project *types.Project) ([]string, error
 	}
 
 	binds := []string{fmt.Sprintf("%s:/out", dir)}
-	commands := []string{"sh", "-c", `
-    set -e
-    echo "all args $@"
-    while [ "$#" -ge 2 ]; do
-      echo "copying $1 to $2"
-      tar -c --numeric-owner -f $2 -C $1 .
-      shift 2
-    done
-  `, "foo"}
+	commands := []string{"export"}
+
 	for _, vol := range project.Volumes {
 		binds = append(binds, fmt.Sprintf("%s:/in/%s:ro", vol.Name, vol.Name))
 		tarballName := fmt.Sprintf("%s.tar", vol.Name)
 		inputPath := filepath.Join("/in", vol.Name)
 		outputPath := filepath.Join("/out", tarballName)
-		commands = append(commands, inputPath, outputPath)
+		commands = append(commands, fmt.Sprintf("%s:%s", inputPath, outputPath))
 		results = append(results, filepath.Join(dir, tarballName))
 	}
 

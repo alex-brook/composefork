@@ -6,3 +6,4 @@ composefork
 dist
 alpine_*
 debian_*
+system_*.tar
