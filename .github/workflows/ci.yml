@@ -5,9 +5,15 @@ on:
     branches: [main]
   pull_request:
 
+# A superseded push shouldn't leave a 20 minute integration run burning.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  licenses:
+  unit:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -15,22 +21,48 @@ jobs:
         with:
           go-version: stable
 
-      - name: Install go-licenses
-        run: go install github.com/google/go-licenses/v2@v2.0.1
+      # gen.sh needs a docker-container builder to export image tarballs.
+      - uses: docker/setup-buildx-action@v4
 
-      # go-licenses only has to load the packages, not run them, so empty files
-      # are enough to satisfy the //go:embed. Building the real images here would
-      # mean pulling buildx and cross-compiling for a check that never reads them.
-      - name: Stub the embedded image tarballs
-        run: touch internal/system_amd64.tar internal/system_arm64.tar
+      # The embedded tarballs have to be real: TestSystemImageHasTag reads the
+      # manifest out of them, and the round trip runs the image.
+      - name: Build system images
+        run: ./gen/gen.sh
 
-      # Both binaries ship: the CLI, and the runner embedded in the system image.
-      # The ignores are packages go-licenses cannot resolve a license for at all;
-      # without them the check exits non-zero whatever the policy says.
-      - name: Check licenses
-        run: |
-          go-licenses check . ./gen \
-            --ignore=github.com/alex-brook/composefork \
-            --ignore=gotest.tools \
-            --ignore=github.com/in-toto \
-            --disallowed_types=forbidden,restricted
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./internal/... -v
+
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build system images
+        run: ./gen/gen.sh
+
+      # gemstash is a pull-through gem cache; persisting it across runs is what
+      # stops every run re-fetching from rubygems.org. GEMSTASH_DATA turns its
+      # volume into a bind mount so this directory is the cache.
+      - uses: actions/cache@v4
+        with:
+          path: .cache/gemstash
+          key: gemstash-${{ hashFiles('test/dummy/Gemfile.lock') }}
+          restore-keys: gemstash-
+
+      # TestMain brings gemstash up for the suite. The tests build the dummy
+      # project and run real compose projects, so this is minutes, not seconds —
+      # well past go test's 10m default.
+      - name: Test
+        env:
+          GEMSTASH_DATA: ${{ github.workspace }}/.cache/gemstash
+        run: go test ./test/ -v -timeout 40m

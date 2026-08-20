@@ -11,3 +11,5 @@ system_*.tar
 # generated at release time by go-licenses
 third_party/
 THIRD-PARTY.csv
+
+.cache/
