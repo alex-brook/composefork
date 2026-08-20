@@ -20,5 +20,6 @@ for platform in "${PLATFORMS[@]}"; do
     --platform "$platform" \
     -f gen/Dockerfile \
     -o "type=docker,dest=${OUTDIR}/system_${arch}.tar" \
+    -t composefork/system \
     .
 done
