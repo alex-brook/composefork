@@ -1,0 +1,44 @@
+name: licenses
+
+# Only dependency changes can alter the licence set, so this is keyed on go.sum
+# rather than running on every commit.
+on:
+  push:
+    branches: [main]
+    paths:
+      - go.sum
+      - .github/workflows/licenses.yml
+  pull_request:
+    paths:
+      - go.sum
+      - .github/workflows/licenses.yml
+
+jobs:
+  licenses:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Install go-licenses
+        run: go install github.com/google/go-licenses/v2@v2.0.1
+
+      # go-licenses only has to load the packages, not run them, so empty files
+      # are enough to satisfy the //go:embed. Building the real images here would
+      # mean pulling buildx and cross-compiling for a check that never reads them.
+      - name: Stub the embedded image tarballs
+        run: touch internal/system_amd64.tar internal/system_arm64.tar
+
+      # Both binaries ship: the CLI, and the runner embedded in the system image.
+      # The ignores are packages go-licenses cannot resolve a license for at all;
+      # without them the check exits non-zero whatever the policy says.
+      - name: Check licenses
+        run: |
+          go-licenses check . ./gen \
+            --ignore=github.com/alex-brook/composefork \
+            --ignore=gotest.tools \
+            --ignore=github.com/in-toto \
+            --disallowed_types=forbidden,restricted

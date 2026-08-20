@@ -6,7 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - data:/gemstash
+      # A path in GEMSTASH_DATA makes this a bind mount, so CI can cache the gem
+      # cache as a directory. Unset, it stays a named volume.
+      - ${GEMSTASH_DATA:-data}:/gemstash
     networks:
       - net
     ports:

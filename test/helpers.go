@@ -49,6 +49,20 @@ func composeParent(t *testing.T, args ...string) {
 	}
 }
 
+// reclaimTempDir deletes everything under dir from inside a container. The
+// project's services run as root, so on a daemon without userns remapping
+// (GitHub's runners) the Rails log/ and tmp/ trees they create in the
+// bind-mounted worktree are root-owned, and t.TempDir's cleanup can't unlink
+// them. Container root owns those files whichever uid the daemon maps it to.
+func reclaimTempDir(t *testing.T, dir string) {
+	t.Helper()
+	cmd := exec.Command("docker", "run", "--rm", "-v", dir+":/w", "alpine",
+		"find", "/w", "-mindepth", "1", "-maxdepth", "1", "-exec", "rm", "-rf", "{}", "+")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Logf("reclaiming %s: %v\n%s", dir, err, out)
+	}
+}
+
 // runGit runs a git command in dir, wiring output through and failing the test
 // on error.
 func runGit(t *testing.T, dir string, args ...string) {
@@ -111,6 +125,10 @@ func newRepo(t *testing.T) (dir, project string) {
 	// The app detects the main checkout vs. a linked worktree via git, so the
 	// project needs a real repo to run in.
 	dir = t.TempDir()
+	// Registered after t.TempDir so it runs before the temp dir removal, and
+	// before the docker cleanup so it runs after it — cleanups are LIFO.
+	t.Cleanup(func() { reclaimTempDir(t, filepath.Dir(dir)) })
+
 	initGitRepo(t, dir)
 
 	// Derive a project name from t.TempDir's unique-per-run parent segment (the
