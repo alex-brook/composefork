@@ -12,5 +12,5 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -ldflags='-s -w' -o /runner main.go
 
 FROM scratch
-COPY --from=runner /runner /import
-COPY --from=runner /runner /export
+COPY --from=runner /runner /runner
+ENTRYPOINT ["/runner"]
