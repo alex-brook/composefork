@@ -17,12 +17,17 @@
     - [x] Snapshot volumes
     - [x] Use these cached volumes when creating forks
 
-- [x] Running `composefork up` in the main worktree should be equivalent to docker compose up
-
 - [x] Each fork should build its own image, not just use the parent image
     - [x] Fork images should be removed when the project is torn down
 
-- [] Replace bundled debian with smaller non-gpl image
+- [x] Replace bundled debian with smaller non-gpl image
+
+- [] Running `composefork up` in the main worktree should be equivalent to docker compose up
+    - [] It isn't: `up` there restores the cache over the project's live volumes
+        - `Up` calls `importVolumes` unconditionally, and in the main worktree the expected
+          tarball name resolves to the parent's own, so `cache` followed by `up` silently
+          replaces live data — losing local db state via postgres_data
+        - `Project.Root()` is the guard, it just isn't applied
 
 - [] Setup prompt that covers:
     - [] That a compose project exists
