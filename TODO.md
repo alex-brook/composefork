@@ -22,6 +22,8 @@
 - [x] Each fork should build its own image, not just use the parent image
     - [x] Fork images should be removed when the project is torn down
 
+- [] Replace bundled debian with smaller non-gpl image
+
 - [] Setup prompt that covers:
     - [] That a compose project exists
     - [] That it can be recognised from the root directory (.env)
