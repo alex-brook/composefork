@@ -7,3 +7,7 @@ dist
 alpine_*
 debian_*
 system_*.tar
+
+# generated at release time by go-licenses
+third_party/
+THIRD-PARTY.csv

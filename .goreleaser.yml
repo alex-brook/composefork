@@ -3,6 +3,7 @@ version: 2
 before:
   hooks:
     - ./gen/gen.sh
+    - ./gen/licenses.sh
 
 builds:
   - env:
@@ -23,3 +24,11 @@ archives:
   - formats: [tar.gz]
     name_template: >-
       {{ .ProjectName }}_{{ .Os }}_{{ .Arch }}
+    # Listing files replaces goreleaser's defaults, so LICENSE/README are named
+    # explicitly. third_party carries the dependency licenses, their NOTICE
+    # files, and full source for the MPL-2.0 ones.
+    files:
+      - LICENSE
+      - README.md
+      - THIRD-PARTY.csv
+      - third_party/**/*
