@@ -10,7 +10,7 @@ worktree and compose project is reserved for you to work on manually.
 ## Prerequisites
 - Docker installed on your system
 - Claude Desktop or a similar tool that manages worktrees and chat threads
-- A project configured with a docker compose devcontainer, check out the dummy app if you are unsure as to what this looks like.
+- A project configured with a docker compose devcontainer, check out the dummy app in `test/dummy` if you are unsure as to what this looks like — `test/dummy/.devcontainer/compose.yml` is the part worth copying.
 
 ## Getting started
 - A static binary is available on the releases page
@@ -63,16 +63,22 @@ Restarts the containers for the current worktree's project, keeping the same
 dynamically assigned ports. Pass service names to restart only those services,
 or none to restart everything.
 
+This restarts processes only — it does not pick up changes to the compose file
+or the Dockerfile. Use `composefork down` then `composefork up` for those.
+
 ### Speed up fork start-up by caching volumes
 
 ```sh
 composefork cache
 ```
 
-Builds the main project once and snapshots its volumes to a local cache. Later
-`composefork up` runs seed their volumes from that snapshot, so forks that would
-otherwise reinstall dependencies on start come up fast. Run it from the main
-worktree after dependencies change.
+Saves a snapshot of the project's installed dependencies to a local cache.
+Later `composefork up` runs seed their volumes from that snapshot, so forks that
+would otherwise reinstall dependencies on start come up fast.
+
+It works on the project as a whole rather than on your current worktree, and it
+leaves your running containers and their data untouched. Run it after
+dependencies change.
 
 ### See all forked projects
 
