@@ -5,7 +5,7 @@ version=${1:-}
 if [ -z "$version" ]; then
   latest=$(git tag -l 'v*' --sort=-v:refname | head -1)
   IFS=. read -r major minor patch <<<"${latest#v}"
-  version="v$major.$minor.$((patch + 1))"
+  version="v${major:-0}.${minor:-0}.$((patch + 1))"
 fi
 
 git tag -a "$version" -m "$version"
