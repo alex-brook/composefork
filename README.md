@@ -12,6 +12,14 @@ worktree and compose project is reserved for you to work on manually.
 - Claude Desktop or a similar tool that manages worktrees and chat threads
 - A project configured with a docker compose devcontainer, check out the dummy app in `test/dummy` if you are unsure as to what this looks like — `test/dummy/.devcontainer/compose.yml` is the part worth copying.
 
+## Installation
+### Mise
+```
+mise use -g github:alex-brook/composefork@latest
+```
+### Manual
+Download a binary matching your system from the releases page and add it to your PATH
+
 ## Getting started
 - A static binary is available on the releases page
 - Instruct agents to use `composefork` to manage the project in your AGENTS.md or similar. You may want to use `composefork skill` as a baseline
