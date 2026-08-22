@@ -40,7 +40,7 @@
 
 - [] Add a verbose flag
 
-- [] Add tests to CI
+- [x] Add tests to CI
 
 - Investigate checkpoints to avoid using too much RAM
     - [] Guess memory consumption based on avg. of existing projects
