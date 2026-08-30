@@ -33,10 +33,6 @@ Open items ranked by severity, worst first. Completed work is at the bottom.
 
 ## High — the agent gets stuck or is actively misled
 
-- [] Crashed services vanish from `ps` instead of showing as exited
-    - `Ps` is called with `All: false`, so a dead container is simply absent
-    - This is the "agent got stuck" case again — restart only helps if you know to run it
-
 - [] `up` waits for health with no timeout, a never-healthy service hangs forever with no output
 
 ## Medium — correctness and ergonomics
@@ -118,6 +114,17 @@ Open items ranked by severity, worst first. Completed work is at the bottom.
       wildcard, LAN address, udp, expanded range) and by port assertions on the existing
       bring-ups in `TestForkUp` and `TestWorktree` — the latter guards that the main
       worktree keeps its own authored bindings
+
+- [x] Crashed services vanish from `ps` instead of showing as exited
+    - `Ps` is called with `All: false`, so a dead container is simply absent
+    - This is the "agent got stuck" case again — restart only helps if you know to run it
+    - 🤖 `printProjectStatus` passes `All: true`, so a dead container keeps its row
+      and reports as `exited` rather than dropping out of the table
+    - 🤖 Covered by `TestPsShowsCrashedService`, which SIGKILLs a service through the
+      Docker API (bypassing compose, so the daemon sees an abrupt death) and asserts the
+      service is still listed. It asserts the row is present *before* the kill as well —
+      without that, a row that never matched would be indistinguishable from one that
+      survived
 
 - [x] Replace bundled debian with smaller non-gpl image
 

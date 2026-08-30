@@ -12,11 +12,13 @@ import (
 	"strings"
 	"testing"
 	"text/template"
+	"time"
 
 	"github.com/alex-brook/composefork/cmd"
 	"github.com/alex-brook/composefork/internal"
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/flags"
+	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 )
 
@@ -149,6 +151,17 @@ func populateProject(t *testing.T, dir, project string) {
 
 	if err := os.CopyFS(dir, os.DirFS("dummy")); err != nil {
 		log.Fatalf("couldn't copy dummy: %v", err)
+	}
+
+	// The fixture is copied from the working tree, so gitignored paths present in a
+	// developer's checkout ride along. A stale tmp/pids/server.pid left by a manual
+	// run is the one that bites: Rails reads it, finds the recorded pid alive in the
+	// fresh container's pid namespace, and refuses to boot. CI checks out clean and
+	// never has these, so drop them and match it.
+	for _, d := range []string{"tmp", "log"} {
+		if err := os.RemoveAll(filepath.Join(dir, d)); err != nil {
+			t.Fatalf("removing %s from the fixture copy: %v", d, err)
+		}
 	}
 
 	var buf bytes.Buffer
@@ -315,5 +328,36 @@ func cleanupDocker(t *testing.T, projectName string) {
 	joinedErr := errors.Join(errs...)
 	if errs != nil {
 		log.Fatalf("teardown error: %v", joinedErr)
+	}
+}
+
+// crashService kills the service's containers the way a real crash arrives —
+// abruptly, with no `down` and no compose bookkeeping — and waits for the
+// daemon to confirm they stopped, so a following assertion isn't racing the
+// kill.
+func crashService(t *testing.T, project, service string) {
+	t.Helper()
+
+	cs := forkContainers(t, project, service)
+	if len(cs) == 0 {
+		t.Fatalf("expected a container for service %q in project %q to crash, found none", service, project)
+	}
+
+	docker := dockerClient(t)
+	ctx := context.Background()
+	for _, c := range cs {
+		// Start waiting before the kill: the container can exit first, and a wait
+		// registered afterwards would block on a transition already past.
+		wait := docker.ContainerWait(ctx, c.ID, client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning})
+		if _, err := docker.ContainerKill(ctx, c.ID, client.ContainerKillOptions{Signal: "SIGKILL"}); err != nil {
+			t.Fatalf("killing service %q container %s: %v", service, c.ID, err)
+		}
+		select {
+		case err := <-wait.Error:
+			t.Fatalf("waiting for service %q container %s to stop: %v", service, c.ID, err)
+		case <-wait.Result:
+		case <-time.After(30 * time.Second):
+			t.Fatalf("service %q container %s still running 30s after SIGKILL", service, c.ID)
+		}
 	}
 }

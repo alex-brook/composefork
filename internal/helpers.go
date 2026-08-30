@@ -18,7 +18,7 @@ const COMPOSEFORK_DIR_LABEL = "com.github.alex-brook.composefork.dir"
 const SYSTEM_IMAGE = "composefork/system"
 
 func (a *App) printProjectStatus(name string) error {
-	containers, err := a.Compose.Ps(context.Background(), name, api.PsOptions{All: false})
+	containers, err := a.Compose.Ps(context.Background(), name, api.PsOptions{All: true})
 	if err != nil {
 		return fmt.Errorf("error in ps: %w", err)
 	}

@@ -156,3 +156,28 @@ func TestParallelForks(t *testing.T) {
 	}
 	assertNoContainers(t, parent)
 }
+
+// TestPsShowsCrashedService proves `ps` keeps reporting a service whose
+// container has died. An agent that only ever sees running containers reads a
+// crash as "that service was never there", which is indistinguishable from a
+// compose file mistake — and it has no reason to reach for `restart`. The crash
+// has to stay on screen, as an exited row.
+func TestPsShowsCrashedService(t *testing.T) {
+	project := setupTest(t)
+
+	_, err := executeCommand(t, "up")
+	assertNoError(t, err)
+	assertContainerRunning(t, project, "db")
+
+	// Baseline: db is listed while it runs, so its absence below is the crash
+	// being hidden and not an assertion that never matched.
+	out, err := executeCommand(t, "ps")
+	assertNoError(t, err)
+	assertContains(t, out, "db")
+
+	crashService(t, project, "db")
+
+	out, err = executeCommand(t, "ps")
+	assertNoError(t, err)
+	assertContains(t, out, "db")
+}
