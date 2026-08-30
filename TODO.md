@@ -39,11 +39,6 @@ Open items ranked by severity, worst first. Completed work is at the bottom.
 
 - [] `up` waits for health with no timeout, a never-healthy service hangs forever with no output
 
-- [] Expose forked services on 127.0.0.1
-    - 🤖 `applyForkOverrides` clears `HostIP` as well as `Published`, so a parent
-      deliberately bound to loopback yields forks published on `0.0.0.0` — every agent's
-      stack is reachable from the local network
-
 ## Medium — correctness and ergonomics
 
 - [] Setup prompt that covers:
@@ -113,6 +108,16 @@ Open items ranked by severity, worst first. Completed work is at the bottom.
     - [x] Fork images should be removed when the project is torn down
         - 🤖 Only true for services that omit `image:`. With an explicit tag the fork
           builds over the shared tag and `down` then deletes it out from under the parent
+
+- [x] Expose forked services on 127.0.0.1
+    - 🤖 `applyForkOverrides` sets `HostIP` to `127.0.0.1` instead of clearing it.
+      Clearing it wasn't enough: a bare `3000:3000` leaves the field empty and the daemon
+      then binds `0.0.0.0`, so the fork has to force loopback rather than preserve what
+      the parent authored
+    - 🤖 Covered by `TestApplyForkOverridesBindsLoopback` (bare, explicit loopback,
+      wildcard, LAN address, udp, expanded range) and by port assertions on the existing
+      bring-ups in `TestForkUp` and `TestWorktree` — the latter guards that the main
+      worktree keeps its own authored bindings
 
 - [x] Replace bundled debian with smaller non-gpl image
 

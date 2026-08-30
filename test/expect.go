@@ -2,6 +2,8 @@ package test
 
 import (
 	"context"
+	"fmt"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"slices"
@@ -221,4 +223,64 @@ func statCacheTarball(t *testing.T, name string) os.FileInfo {
 		t.Fatalf("expected cache tarball %q: %v", path, err)
 	}
 	return info
+}
+
+// --- Port bindings --------------------------------------------------------
+
+// hostIPs returns the host address of every published port binding across the
+// service's containers, labelled "3000/tcp -> 127.0.0.1" for error messages.
+// Bindings come from inspect: the list endpoint reports ports in a shape that
+// loses the bind address.
+func hostIPs(t *testing.T, project, service string) (ips []netip.Addr, labels []string) {
+	t.Helper()
+	cs := forkContainers(t, project, service)
+	if len(cs) == 0 {
+		t.Fatalf("expected a container for service %q in project %q, found none", service, project)
+	}
+	for _, c := range cs {
+		res, err := dockerClient(t).ContainerInspect(context.Background(), c.ID, client.ContainerInspectOptions{})
+		if err != nil {
+			t.Fatalf("inspecting service %q container %s: %v", service, c.ID, err)
+		}
+		for port, binds := range res.Container.NetworkSettings.Ports {
+			for _, b := range binds {
+				ips = append(ips, b.HostIP)
+				labels = append(labels, fmt.Sprintf("%s -> %s", port, b.HostIP))
+			}
+		}
+	}
+	// Guard against a vacuous pass: if the fixture stops publishing ports, or
+	// the bindings never materialize, the caller's loop would assert nothing.
+	if len(ips) == 0 {
+		t.Fatalf("service %q in project %q has no published port bindings; the assertion would pass vacuously", service, project)
+	}
+	return ips, labels
+}
+
+// assertPortsLoopback asserts every published port of the service is bound to a
+// loopback address, so the fork is not reachable from the local network.
+func assertPortsLoopback(t *testing.T, project, service string) {
+	t.Helper()
+	ips, labels := hostIPs(t, project, service)
+	for i, ip := range ips {
+		if !ip.IsLoopback() {
+			t.Fatalf("service %q in project %q publishes %s, want a loopback address\n--- all bindings ---\n%s",
+				service, project, labels[i], strings.Join(labels, "\n"))
+		}
+	}
+}
+
+// assertPortsNotLoopback asserts at least one published port is bound off
+// loopback. Used on the main worktree to prove the fork narrowing is not
+// applied to the developer's own project.
+func assertPortsNotLoopback(t *testing.T, project, service string) {
+	t.Helper()
+	ips, labels := hostIPs(t, project, service)
+	for _, ip := range ips {
+		if !ip.IsLoopback() {
+			return
+		}
+	}
+	t.Fatalf("service %q in project %q publishes only on loopback, want its authored binding left alone\n--- all bindings ---\n%s",
+		service, project, strings.Join(labels, "\n"))
 }

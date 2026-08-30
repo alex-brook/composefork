@@ -28,6 +28,10 @@ services:
 
   db:
     image: docker.io/library/postgres:17
+    # Published with no host_ip and no fixed host port: the wide-bind case the
+    # loopback assertions need, without a port that could collide.
+    ports:
+      - "5432"
     environment:
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:

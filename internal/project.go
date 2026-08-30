@@ -121,7 +121,7 @@ func applyForkOverrides(project *types.Project, parentName string) {
 	for name, srv := range project.Services {
 		for i := range srv.Ports {
 			srv.Ports[i].Published = ""
-			srv.Ports[i].HostIP = ""
+			srv.Ports[i].HostIP = "127.0.0.1"
 		}
 		project.Services[name] = srv
 	}

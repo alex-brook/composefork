@@ -19,6 +19,11 @@ func TestWorktree(t *testing.T) {
 		assertServiceHealthy(t, project, "web")
 		assertNetworkExists(t, project, "default")
 		assertVolumeExists(t, project, "bundle_data")
+
+		// The main worktree is the developer's own project: its authored port
+		// bindings are left exactly as written, loopback or not.
+		assertPortsLoopback(t, project, "web")   // authored "127.0.0.1:3000:3000"
+		assertPortsNotLoopback(t, project, "db") // authored bare "5432"
 	})
 
 	t.Run("ps", func(t *testing.T) {
@@ -83,6 +88,11 @@ func TestForkUp(t *testing.T) {
 	assertContainerRunning(t, project, "web")
 	assertContainerRunning(t, project, "db")
 	assertServiceHealthy(t, project, "web")
+
+	// Forks are agent scratch space: nothing they publish may be reachable from
+	// the local network, whether or not the parent authored a host_ip.
+	assertPortsLoopback(t, project, "web")
+	assertPortsLoopback(t, project, "db")
 
 	// The fork runs under its own project name (parent-feature), not the parent's.
 	out, err := executeCommand(t, "ls")
