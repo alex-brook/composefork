@@ -6,7 +6,15 @@ Open items ranked by severity, worst first. Completed work is at the bottom.
 > unchanged. Severity here means blast radius on the developer's real
 > environment, then how badly a wrong result misleads an agent, then the rest.
 
-## Critical — silent data loss
+## Critical — hits a real developer, silently
+
+- [] Untracked files listed in `.worktreeinclude` are missing when an agent makes the
+  worktree, rather than the claude app
+    - [] Copy the missing ones from the main worktree on `up`, before the compose
+      project is loaded
+    - 🤖 Ranked first because it takes no mistake to trigger, and `.env` is what goes
+      missing: compose then falls back to the worktree's own directory name, so `cache`
+      is a silent no-op and `ls`/`prune` lose track of the fork
 
 - [] Running `composefork up` in the main worktree should be equivalent to docker compose up
     - [] It isn't: `up` there restores the cache over the project's live volumes
