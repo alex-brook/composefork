@@ -9,6 +9,7 @@ worktree and compose project is reserved for you to work on manually.
 
 ## Prerequisites
 - Docker installed on your system
+- Git
 - Claude Desktop or a similar tool that manages worktrees and chat threads
 - A project configured with a docker compose devcontainer, check out the dummy app in `test/dummy` if you are unsure as to what this looks like — `test/dummy/.devcontainer/compose.yml` is the part worth copying.
 

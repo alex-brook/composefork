@@ -12,6 +12,7 @@ Open items ranked by severity, worst first. Completed work is at the bottom.
   worktree, rather than the claude app
     - [] Copy the missing ones from the main worktree on `up`, before the compose
       project is loaded
+    - 🤖 `TestForkUpWithoutIncludedFiles` is the failing test for this
     - 🤖 Ranked first because it takes no mistake to trigger, and `.env` is what goes
       missing: compose then falls back to the worktree's own directory name, so `cache`
       is a silent no-op and `ls`/`prune` lose track of the fork
@@ -55,6 +56,13 @@ Open items ranked by severity, worst first. Completed work is at the bottom.
       pinned `COMPOSE_PROJECT_NAME` the parent name is inferred per worktree, which
       silently turns the entire volume cache into a no-op
 
+- [] Support bare repositories, where every checkout is a linked worktree and none
+  of them is the main one
+    - [] `cache` chdirs to `TrimSuffix(commonDir, ".git")`, which here is
+      `/repo` for a `/repo.git` common dir — a path with no working tree, or none at all
+    - [] Nothing is ever the parent, so there is no checkout to snapshot volumes from,
+      or to copy the `.worktreeinclude` entries out of
+
 - [] Commands have no `Args` validators, stray arguments are silently ignored
 
 - [] Cached snapshots are never pruned, the cache dir grows unbounded
@@ -83,6 +91,39 @@ Open items ranked by severity, worst first. Completed work is at the bottom.
     - [] Decide if we will go over the allocated docker RAM with a new fork
     - [] Checkpoint/pause the oldest
     - [] When you interact with a paused project, prints a note for agent to ask permission before unpausing
+
+- Use composefork to bring up a development stack in CI
+    - Reliability, not speed. Guarantee: unchanged config survives an outage
+    - CI restores the cache dir, `composefork ci` imports what's there, `cache`
+      re-produces only on compose-config or lockfile change (a full throwaway bring-up)
+    - Three artifacts in one dir: volume snapshots, image tarballs, build cache
+    - Consumer stays on the default docker driver — base images resolve from the local
+      store there and cache imports work. Producer needs a `docker-container` builder,
+      the only thing that can export cache. Different runs, so no conflict
+
+    - [] `composefork ci` — restore everything cached and bring up the main worktree
+        - Thin wrapper over `up`'s path, not a parallel one
+        - Natural home for the "report what was restored" line
+        - Read-only: never produces. A miss is the workflow cache key's business
+        - 🤖 Names the caller, not the behaviour — a cold-start restore outside CI
+          (fresh clone, prebuild) would be running a command called `ci`
+    - [] Images — pulled service images plus base images, `ImageLoad` before `Create`
+        - Built images out of scope, the build replaces them
+        - Base images need `FROM` parsing, or capture during `cache`
+    - [] Build cache — `cache_to` in `cache`, `cache_from` in `up`. `type=local`,
+      `mode=max`, one dir per service
+    - [] Producer branches: images only if build cache is also exportable
+        - [] `cache` makes its own `docker-container` builder first, else this fires for
+          any CI job without `setup-buildx-action`
+        - [] Report what was emitted — every failure mode here is silent
+    - [] Cache dir addressable, size ceiling, what a cache miss does
+
+- Decide whether podman is supported, and make it true either way
+    - [] Does it build at all? `BuildKitEnabled()` returns true on podman, so compose
+      takes the bake path when buildx is on disk — against a daemon with no BuildKit
+    - [] Volume snapshot round trip under rootless podman: `UsernsMode: "host"` vs
+      subuid mapping. Likelier breakage than builds, and it's the core feature
+    - [] Then document as supported and add to CI, or detect and refuse clearly
 
 ## Done
 
