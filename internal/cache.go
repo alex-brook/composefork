@@ -24,11 +24,10 @@ func (a *App) Cache() error {
 	if err != nil {
 		return err
 	}
-	commonDir, err := projectRoot()
+	rootDir, err := projectRoot()
 	if err != nil {
 		return err
 	}
-	rootDir := strings.TrimSuffix(commonDir, ".git")
 	err = os.Chdir(rootDir)
 	if err != nil {
 		return err

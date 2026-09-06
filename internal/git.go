@@ -1,12 +1,20 @@
 package internal
 
 import (
+	"errors"
 	"os/exec"
 	"strings"
 )
 
+// copyWorktreeIncludes seeds destRoot with the local files git left out of it:
+// the entries .worktreeinclude names in sourceRoot, read as gitignore-style
+// patterns and matched against the files git reports as untracked and ignored.
+func copyWorktreeIncludes(sourceRoot, destRoot string) error {
+	return errors.New("copyWorktreeIncludes: not implemented")
+}
+
 func inMainWorktree() (bool, error) {
-	gitDir, err := git("rev-parse", "--path-format=absolute", "--git-dir")
+	currentDir, err := currentRoot()
 	if err != nil {
 		return false, err
 	}
@@ -16,7 +24,15 @@ func inMainWorktree() (bool, error) {
 		return false, err
 	}
 
-	return gitDir == commonDir, nil
+	return currentDir == commonDir, nil
+}
+
+func currentRoot() (string, error) {
+	gitDir, err := git("rev-parse", "--path-format=absolute", "--show-toplevel")
+	if err != nil {
+		return "", err
+	}
+	return gitDir, nil
 }
 
 func projectRoot() (string, error) {
@@ -24,7 +40,7 @@ func projectRoot() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return commonDir, nil
+	return strings.TrimSuffix(commonDir, "/.git"), nil
 }
 
 func git(args ...string) (string, error) {
