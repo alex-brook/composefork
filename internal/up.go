@@ -16,6 +16,19 @@ import (
 )
 
 func (a *App) Up() error {
+	sourceRoot, destRoot, err := worktreeRoots()
+	if err != nil {
+		return err
+	}
+	// git only checks tracked files into a linked worktree, so a fork an agent
+	// made for itself starts without .env, and the parent project name with it
+	if sourceRoot != destRoot {
+		a.Log.Println("Copying .worktreeinclude files")
+		if err := copyWorktreeIncludes(sourceRoot, destRoot); err != nil {
+			a.Log.Println("warning: .worktreeinclude:", err)
+		}
+	}
+
 	// Resolve parent / master project
 	a.Log.Println("Loading parent project")
 	project, err := NewProject("")

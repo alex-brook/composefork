@@ -361,3 +361,70 @@ func crashService(t *testing.T, project, service string) {
 		}
 	}
 }
+
+const (
+	// The developer's local database. Rails keeps it in storage/, git never
+	// carries it, and losing it is what a fork notices first.
+	localDBPath = "storage/local.sqlite3"
+	localDBBody = "composefork-local-database"
+
+	// .worktreeinclude names storage/ whole, which is how a developer asks for
+	// local uploads and databases. git tracks storage/.keep, so a new worktree
+	// already holds part of the directory and the seed has to fill in the rest
+	// around it.
+	localDir = "storage"
+)
+
+// worktreeIgnored is what git is told to leave behind, so a linked worktree
+// starts without it. .env is the one that hurts — composefork reads the parent
+// project name from it.
+var worktreeIgnored = []string{".env", localDBPath}
+
+// worktreeIncluded is what the fixture's .worktreeinclude lists. A plain file
+// and a directory, so the copy has to read the list rather than special-case .env.
+var worktreeIncluded = []string{".env", localDir}
+
+// writeFile writes content to path, creating parent directories.
+func writeFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		t.Fatalf("creating %q: %v", filepath.Dir(path), err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("writing %q: %v", path, err)
+	}
+}
+
+// commitProject commits everything in the checkout that isn't gitignored, so a
+// linked worktree added afterwards checks the project out — and the ignored
+// files stay behind, which is the point of the fixture.
+func commitProject(t *testing.T, dir string) {
+	t.Helper()
+	runGit(t, dir, "add", "-A")
+	runGit(t, dir,
+		"-c", "user.email=test@example.com", "-c", "user.name=test",
+		"commit", "-m", "project")
+}
+
+// setupAgentForkTest prepares the worktree an agent makes for itself: a plain
+// `git worktree add` on a repo whose local files are gitignored and listed in
+// .worktreeinclude. The Claude app copies those files into a new worktree; git
+// does not, so this fork checks out the tracked project alone. Chdirs into the
+// fork and returns the parent project name, the main checkout dir and the fork
+// dir.
+func setupAgentForkTest(t *testing.T) (parent, mainDir, forkDir string) {
+	t.Helper()
+
+	mainDir, parent = newRepo(t)
+	populateProject(t, mainDir, parent)
+	writeFile(t, filepath.Join(mainDir, localDBPath), localDBBody)
+
+	writeFile(t, filepath.Join(mainDir, ".gitignore"), strings.Join(worktreeIgnored, "\n")+"\n")
+	writeFile(t, filepath.Join(mainDir, ".worktreeinclude"), strings.Join(worktreeIncluded, "\n")+"\n")
+	commitProject(t, mainDir)
+
+	forkDir = addWorktree(t, mainDir, "feature")
+	t.Chdir(forkDir)
+
+	return parent, mainDir, forkDir
+}

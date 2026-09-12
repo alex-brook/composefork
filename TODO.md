@@ -8,15 +8,6 @@ Open items ranked by severity, worst first. Completed work is at the bottom.
 
 ## Critical — hits a real developer, silently
 
-- [] Untracked files listed in `.worktreeinclude` are missing when an agent makes the
-  worktree, rather than the claude app
-    - [] Copy the missing ones from the main worktree on `up`, before the compose
-      project is loaded
-    - 🤖 `TestForkUpWithoutIncludedFiles` is the failing test for this
-    - 🤖 Ranked first because it takes no mistake to trigger, and `.env` is what goes
-      missing: compose then falls back to the worktree's own directory name, so `cache`
-      is a silent no-op and `ls`/`prune` lose track of the fork
-
 - [] Running `composefork up` in the main worktree should be equivalent to docker compose up
     - [] It isn't: `up` there restores the cache over the project's live volumes
         - `Up` calls `importVolumes` unconditionally, and in the main worktree the expected
@@ -58,8 +49,8 @@ Open items ranked by severity, worst first. Completed work is at the bottom.
 
 - [] Support bare repositories, where every checkout is a linked worktree and none
   of them is the main one
-    - [] `cache` chdirs to `TrimSuffix(commonDir, ".git")`, which here is
-      `/repo` for a `/repo.git` common dir — a path with no working tree, or none at all
+    - [] `cache` chdirs to `projectRoot()`, which trims `/.git` and so hands back a
+      bare `/repo.git` unchanged — a git dir with no working tree to change into
     - [] Nothing is ever the parent, so there is no checkout to snapshot volumes from,
       or to copy the `.worktreeinclude` entries out of
 
@@ -126,6 +117,26 @@ Open items ranked by severity, worst first. Completed work is at the bottom.
     - [] Then document as supported and add to CI, or detect and refuse clearly
 
 ## Done
+
+- [x] Untracked files listed in `.worktreeinclude` are missing when an agent makes the
+  worktree, rather than the claude app
+    - [x] Copy the missing ones from the main worktree on `up`, before the compose
+      project is loaded
+    - 🤖 `.env` was the one that hurt: compose fell back to the worktree's own directory
+      name, so `cache` was a silent no-op and `ls`/`prune` lost track of the fork
+    - 🤖 git does the matching, so there is no gitignore library and no new dependency.
+      Candidates come from `ls-files --others --ignored --exclude-standard --directory`,
+      which is why a tracked file is never one and can never collide. A second
+      `ls-files --exclude-from=.worktreeinclude` restricted to those candidates applies
+      the patterns and expands the collapsed directories in one pass
+    - 🤖 Seeds only what is absent. The app copies once, at worktree creation; `up` is
+      our only hook and runs every time, so "add what is missing" is what makes a
+      repeated call mean the same as a single one. Restamping would overwrite the
+      agent's own edits to the fork's `.env`, which is worse than doing nothing
+    - 🤖 Per-entry failures are collected rather than aborting the rest, and `up` logs
+      them as a warning — one bad entry shouldn't cost the fork the others
+    - 🤖 Covered by `internal/worktreeinclude_test.go` (17 tests, no Docker) plus
+      `TestForkUpWithoutIncludedFiles` and `TestForkUpTwiceKeepsLocalEdits`
 
 - It wasn't obvious that `composefork worktree up` waits for the project to be healthy
     - [x] Show health as a column in project info

@@ -1,6 +1,8 @@
 package test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -180,4 +182,79 @@ func TestPsShowsCrashedService(t *testing.T) {
 	out, err = executeCommand(t, "ps")
 	assertNoError(t, err)
 	assertContains(t, out, "db")
+}
+
+// TestForkUpWithoutIncludedFiles covers the worktree an agent makes for itself
+// with a plain `git worktree add`, rather than the one the Claude app makes. The
+// app copies the untracked files listed in .worktreeinclude into the new
+// worktree; git does not, so the fork starts without them. .env is the one that
+// hurts: composefork reads the parent project name from it, and without it the
+// name falls back to the worktree's own directory — the fork is then detached
+// from the parent's cache and from ls/prune, silently. `up` has to copy the
+// listed files out of the main checkout before it loads the compose project.
+//
+// Only the copy is asserted here. Whether the fork then comes up is TestForkUp's
+// subject, so up's own result is reported but not asserted.
+func TestForkUpWithoutIncludedFiles(t *testing.T) {
+	parent, mainDir, forkDir := setupAgentForkTest(t)
+
+	// Preconditions: the fixture really is the agent case — the files exist in
+	// the main checkout and git left them out of the worktree.
+	assertFileExists(t, filepath.Join(mainDir, ".env"))
+	assertFileMissing(t, filepath.Join(forkDir, ".env"))
+	assertFileMissing(t, filepath.Join(forkDir, localDBPath))
+
+	out, err := executeCommand(t, "up")
+	if err != nil {
+		t.Logf("up: %v\n--- output ---\n%s", err, out)
+	}
+
+	// Both listed files landed in the fork, contents intact — .env carrying the
+	// parent project name is what keeps the fork attached to its parent.
+	assertFileContains(t, filepath.Join(forkDir, ".env"), "COMPOSE_PROJECT_NAME="+parent)
+	assertFileContains(t, filepath.Join(forkDir, localDBPath), localDBBody)
+}
+
+// TestForkUpTwiceKeepsLocalEdits runs up twice in the same fork. The copy exists
+// to seed what git left behind, once — not to keep the fork in step with its
+// parent. A developer who edits the fork's own .env, to move a port or point at a
+// different database, would otherwise lose that edit on the next up. The second
+// run also has to tolerate the files the first one wrote, rather than failing on
+// them.
+//
+// The .worktreeinclude fixture names storage/, which git already checks out in
+// part: storage/.keep is tracked and storage/local.sqlite3 is not. So the first up
+// covers that ground too, seeding into a directory that is already half there.
+//
+// As in TestForkUpWithoutIncludedFiles, up's own result is reported but not
+// asserted — the copy runs before anything touches Docker, so the file
+// assertions hold either way.
+func TestForkUpTwiceKeepsLocalEdits(t *testing.T) {
+	parent, _, forkDir := setupAgentForkTest(t)
+
+	out, err := executeCommand(t, "up")
+	if err != nil {
+		t.Logf("first up: %v\n--- output ---\n%s", err, out)
+	}
+	assertFileContains(t, filepath.Join(forkDir, ".env"), "COMPOSE_PROJECT_NAME="+parent)
+	assertFileContains(t, filepath.Join(forkDir, localDBPath), localDBBody)
+
+	// The fork diverges from its parent, the way a developer would: appended to,
+	// not replaced. Rewriting .env whole drops COMPOSE_FILE with it, and the second
+	// up then fails in NewProject without ever reaching the copy this is about.
+	forkEnv := filepath.Join(forkDir, ".env")
+	existing, err := os.ReadFile(forkEnv)
+	if err != nil {
+		t.Fatalf("reading the fork's .env: %v", err)
+	}
+	writeFile(t, forkEnv, string(existing)+"FORK_LOCAL_EDIT=kept\n")
+
+	out, err = executeCommand(t, "up")
+	if err != nil {
+		t.Logf("second up: %v\n--- output ---\n%s", err, out)
+	}
+
+	assertFileContains(t, forkEnv, "COMPOSE_PROJECT_NAME="+parent)
+	assertFileContains(t, forkEnv, "FORK_LOCAL_EDIT=kept")
+	assertFileContains(t, filepath.Join(forkDir, localDBPath), localDBBody)
 }
