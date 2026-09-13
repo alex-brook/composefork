@@ -15,9 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: stable
 
@@ -39,9 +39,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: stable
 
@@ -53,7 +53,7 @@ jobs:
       # gemstash is a pull-through gem cache; persisting it across runs is what
       # stops every run re-fetching from rubygems.org. GEMSTASH_DATA turns its
       # volume into a bind mount so this directory is the cache.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: .cache/gemstash
           key: gemstash-${{ hashFiles('test/dummy/Gemfile.lock') }}
