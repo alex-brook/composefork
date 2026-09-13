@@ -24,8 +24,9 @@ import (
 
 // primeParent brings the parent project up and waits for health so its volumes
 // are populated the way a normal `docker compose up` would, then stops it
-// leaving the volumes for `cache` to snapshot. Registers cleanup that removes
-// the parent and its volumes.
+// leaving them in place. `cache` snapshots a throwaway project of its own, so
+// these are the developer's own volumes, not the source of the snapshot.
+// Registers cleanup that removes the parent and its volumes.
 //
 // This shells out to `docker compose` (rather than the compose library used
 // elsewhere) because the library can't run this authored, build-based parent
@@ -144,12 +145,25 @@ func newRepo(t *testing.T) (dir, project string) {
 	return dir, project
 }
 
+// dummyDir is the fixture, resolved while the working directory is still the
+// package dir: populateProject also runs after a test has chdir'd into its own
+// checkout, where a relative path no longer finds it.
+var dummyDir = mustAbs("dummy")
+
+func mustAbs(path string) string {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		log.Fatalf("resolving %q: %v", path, err)
+	}
+	return abs
+}
+
 // populateProject copies the dummy compose project into dir and writes a .env
 // pointing at it with the given project name.
 func populateProject(t *testing.T, dir, project string) {
 	t.Helper()
 
-	if err := os.CopyFS(dir, os.DirFS("dummy")); err != nil {
+	if err := os.CopyFS(dir, os.DirFS(dummyDir)); err != nil {
 		log.Fatalf("couldn't copy dummy: %v", err)
 	}
 
@@ -427,4 +441,44 @@ func setupAgentForkTest(t *testing.T) (parent, mainDir, forkDir string) {
 	t.Chdir(forkDir)
 
 	return parent, mainDir, forkDir
+}
+
+// runInVolume runs a shell script in a throwaway container with the named volume
+// mounted at /v, returning its stdout. Volume contents are root-owned and only
+// reachable from inside the daemon, so a test that needs to look at them has to
+// go through a container.
+func runInVolume(t *testing.T, volume, script string) string {
+	t.Helper()
+	cmd := exec.Command("docker", "run", "--rm", "-v", volume+":/v", "alpine", "sh", "-c", script)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("docker run in volume %q (%s): %v", volume, script, err)
+	}
+	return strings.TrimSpace(out.String())
+}
+
+// gemFile returns the path of an installed gem's file in the named bundle volume,
+// relative to the volume root. Import untars over the volume rather than
+// replacing it, so only a file the snapshot already holds can tell a skipped
+// restore from a repeated one — and a file under gems/ is one the entrypoint's
+// `bundle install` won't rewrite on the next start.
+func gemFile(t *testing.T, volume string) string {
+	t.Helper()
+	path := runInVolume(t, volume, "find /v/gems -type f | head -1")
+	if path == "" {
+		t.Fatalf("volume %q holds no installed gems", volume)
+	}
+	return strings.TrimPrefix(path, "/v/")
+}
+
+func readVolumeFile(t *testing.T, volume, path string) string {
+	t.Helper()
+	return runInVolume(t, volume, fmt.Sprintf("cat %q", "/v/"+path))
+}
+
+func writeVolumeFile(t *testing.T, volume, path, content string) {
+	t.Helper()
+	runInVolume(t, volume, fmt.Sprintf("printf %%s %q > %q", content, "/v/"+path))
 }
