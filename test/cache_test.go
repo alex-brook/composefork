@@ -4,15 +4,22 @@ import (
 	"testing"
 )
 
-// TestCache exercises the with-cache path: prime the parent project's volumes by
-// running it normally (docker compose up), snapshot them with `cache`, then a
-// fork imports the snapshot on `up`. Mirrors the intended workflow —
-// cache the primed parent, then start forks faster from it.
-func TestCache(t *testing.T) {
-	project := setupTest(t)
+// forkEdit stands in for the work a fork does after it starts: whatever the
+// agent installed, migrated or wrote since the snapshot was taken.
+const forkEdit = "composefork-fork-edit"
 
-	// Prime the parent's volumes by running it normally, leaving them in place
-	// for `cache` to snapshot.
+// TestCache exercises the with-cache path: snapshot the project's volumes with
+// `cache`, then a fork imports the snapshot on `up`. Mirrors the intended
+// workflow — cache once, then start forks faster from it. Like TestWorktree it
+// shares one expensive setup across ordered subtests, so they are not
+// independent.
+func TestCache(t *testing.T) {
+	dir, project := newRepo(t)
+	populateProject(t, dir, project)
+	t.Chdir(dir)
+
+	// Run the parent the way a developer would before caching, leaving its volumes
+	// in place.
 	primeParent(t)
 
 	_, err := executeCommand(t, "cache")
@@ -23,10 +30,34 @@ func TestCache(t *testing.T) {
 		t.Fatalf("cache tarball is %d bytes; expected a primed (non-empty) snapshot", info.Size())
 	}
 
-	// A fork now starts from the cached volumes and comes up healthy.
-	_, err = executeCommand(t, "up")
-	assertNoError(t, err)
-	assertServiceHealthy(t, project, "web")
+	// The cache is for forks, so the consumer has to be a real linked worktree —
+	// in the main checkout the volumes already exist and are never imported into.
+	wt := addWorktree(t, dir, "feature")
+	populateProject(t, wt, project)
+	t.Chdir(wt)
+	bundleVolume := project + "-feature_bundle_data"
+
+	t.Run("up restores the snapshot", func(t *testing.T) {
+		out, err := executeCommand(t, "up")
+		assertNoError(t, err)
+		assertContains(t, out, "Restoring cached volumes")
+		assertServiceHealthy(t, project, "web")
+	})
+
+	t.Run("up again keeps the fork's own data", func(t *testing.T) {
+		path := gemFile(t, bundleVolume)
+		writeVolumeFile(t, bundleVolume, path, forkEdit)
+
+		out, err := executeCommand(t, "up")
+		assertNoError(t, err)
+		assertNotContains(t, out, "Restoring cached volumes")
+
+		// Truncated: restoring puts the gem's own contents back, which are long
+		if got := readVolumeFile(t, bundleVolume, path); got != forkEdit {
+			t.Fatalf("%s in %s is %.60q after a second up, want %q: the snapshot was restored over the fork's own data",
+				path, bundleVolume, got, forkEdit)
+		}
+	})
 
 	_, err = executeCommand(t, "down")
 	assertNoError(t, err)

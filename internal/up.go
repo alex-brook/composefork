@@ -48,14 +48,21 @@ func (a *App) Up() error {
 		return fmt.Errorf("error building project: %w", err)
 	}
 
+	// A volume that is already there holds this project's own data. Only the ones
+	// Create is about to make are empty, and only those can take a snapshot
+	existing, err := a.volumeNames()
+	if err != nil {
+		return fmt.Errorf("error listing volumes: %w", err)
+	}
+
 	err = a.Compose.Create(context.Background(), composeProject, api.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("error creating project: %w", err)
 	}
 
-	err = a.importVolumes(project, composeProject)
+	err = a.importVolumes(project, composeProject, existing)
 	if err != nil {
-		return fmt.Errorf("error creating project: %w", err)
+		return fmt.Errorf("error importing volumes: %w", err)
 	}
 
 	// Bring a child project up
@@ -69,7 +76,7 @@ func (a *App) Up() error {
 	return a.printProjectStatus(composeProject.Name)
 }
 
-func (a *App) importVolumes(project *Project, composeProject *types.Project) error {
+func (a *App) importVolumes(project *Project, composeProject *types.Project, existing map[string]bool) error {
 	dir, err := os.UserCacheDir()
 	if err != nil {
 		return fmt.Errorf("error copying volumes: %w", err)
@@ -80,6 +87,12 @@ func (a *App) importVolumes(project *Project, composeProject *types.Project) err
 
 	commands := []string{"import"}
 	for _, vol := range composeProject.Volumes {
+		// Untar overwrites every path the snapshot holds, so restoring into a volume
+		// that already has data replaces whatever the project did since it was made
+		if existing[vol.Name] {
+			continue
+		}
+
 		// set up the commands the container will run to copy the cached
 		// snapshots into the child volumes
 		expectedTarball := fmt.Sprintf("%s_%s.tar", project.Parent.Name, strings.TrimPrefix(vol.Name, composeProject.Name+"_"))
@@ -102,6 +115,8 @@ func (a *App) importVolumes(project *Project, composeProject *types.Project) err
 	if len(binds) <= 1 {
 		return nil
 	}
+
+	a.Log.Println("Restoring cached volumes")
 
 	id, err := a.createSystemContainer(project.Labels(), client.ContainerCreateOptions{
 		Config: &container.Config{
@@ -133,4 +148,19 @@ func (a *App) importVolumes(project *Project, composeProject *types.Project) err
 	}
 
 	return nil
+}
+
+func (a *App) volumeNames() (map[string]bool, error) {
+	// Unfiltered on purpose: a volume with an explicit name: or external: true
+	// carries no project label, and those are the ones it would hurt most to hit
+	volumes, err := a.Client().VolumeList(context.Background(), client.VolumeListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	names := make(map[string]bool, len(volumes.Items))
+	for _, vol := range volumes.Items {
+		names[vol.Name] = true
+	}
+	return names, nil
 }

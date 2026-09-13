@@ -9,13 +9,28 @@ Open items ranked by severity, worst first. Completed work is at the bottom.
 ## Critical — hits a real developer, silently
 
 - [] Running `composefork up` in the main worktree should be equivalent to docker compose up
-    - [] It isn't: `up` there restores the cache over the project's live volumes
-        - `Up` calls `importVolumes` unconditionally, and in the main worktree the expected
-          tarball name resolves to the parent's own, so `cache` followed by `up` silently
-          replaces live data — losing local db state via postgres_data
-        - `Project.Root()` is the guard, it just isn't applied
-    - [] Same cause, wider blast radius: import runs on *every* `up`, so re-running
-      `up` on a live fork restores the snapshot over that fork's current volumes too
+    - [x] It no longer restores the cache over volumes that already hold data
+        - `Up` lists the volumes that exist before `Create` and imports only into the
+          ones compose then makes, so nothing that already has data is a target. Two
+          cases, and they are not the same size: the main worktree was the developer's
+          own data and rare, a fork was its own work and on every repeated `up`
+        - 🤖 A fork's volumes are disposable — `down` deletes them — so resetting one
+          costs little, and an earlier note here calling this the wider blast radius
+          was wrong. The defect is that `up` was not resetting anything: import is
+          `Untar` over the volume, not a replace, so files the snapshot holds revert,
+          files written since stay, and what comes back is a mix rather than either
+          state — stale postgres control files beside newer WAL. A real reset has to
+          remove the volumes, which is what `down` is for
+        - 🤖 An `up` interrupted between `Create` and the import leaves empty volumes
+          that are never seeded afterwards. The fork installs from scratch instead,
+          which is slow rather than wrong
+        - 🤖 Covered by `TestCache`'s ordered subtests: the fork's first `up` restores
+          the snapshot, and an edit to a file the snapshot holds survives the second
+    - [] Still not equivalent: a main worktree with no volumes yet (a fresh clone)
+      imports the parent snapshot on `up`, where `docker compose up` would start empty
+        - `Project.Root()` is the guard, it just isn't applied. The open question is
+          whether `up`/`down` should refuse to run in the main worktree outright, which
+          would let `Root()` and its two remaining branches go
 
 - [] Volumes with an explicit `name:` or `external: true` are cached but never restored
     - They carry no project prefix, so the name we look for on import never matches
@@ -135,7 +150,7 @@ Open items ranked by severity, worst first. Completed work is at the bottom.
       agent's own edits to the fork's `.env`, which is worse than doing nothing
     - 🤖 Per-entry failures are collected rather than aborting the rest, and `up` logs
       them as a warning — one bad entry shouldn't cost the fork the others
-    - 🤖 Covered by `internal/worktreeinclude_test.go` (17 tests, no Docker) plus
+    - 🤖 Covered by `internal/worktreeinclude_test.go` (13 tests, no Docker) plus
       `TestForkUpWithoutIncludedFiles` and `TestForkUpTwiceKeepsLocalEdits`
 
 - It wasn't obvious that `composefork worktree up` waits for the project to be healthy
