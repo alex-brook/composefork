@@ -1,6 +1,8 @@
 tmp
 log/
-.claude
+# Session-local Claude state; .claude/skills is tracked.
+.claude/worktrees/
+.claude/RESUME.md
 .env
 composefork
 dist

@@ -11,7 +11,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Dependency breaks surface as a typecheck failure, so catching them here
+  # keeps them off the two jobs that sit behind buildx. vet rather than build:
+  # it typechecks _test.go too, and test/ is almost entirely test files.
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+
+      # Vet never reads the tarballs, it only needs them to exist for the
+      # //go:embed. Same trick as licenses.yml.
+      - name: Stub the embedded image tarballs
+        run: touch internal/system_amd64.tar internal/system_arm64.tar
+
+      - name: Vet
+        run: go vet ./...
+
   unit:
+    needs: typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -29,13 +51,11 @@ jobs:
       - name: Build system images
         run: ./gen/gen.sh
 
-      - name: Vet
-        run: go vet ./...
-
       - name: Test
         run: go test ./internal/... -v
 
   integration:
+    needs: typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
