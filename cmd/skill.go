@@ -101,10 +101,6 @@ checks, since that is the signal that installing dependencies has finished.
 Lists all forked compose projects on this machine, across every repository.
 Unlike "composefork ps", it is not scoped to the current worktree or project.
 
-### composefork prune
-Removes forked compose projects whose worktree directories no longer exist.
-Run this to clean up after deleting a worktree.
-
 ### composefork version
 Prints the composefork version, commit and build date.
 

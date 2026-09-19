@@ -95,14 +95,6 @@ dependencies change.
 composefork ls
 ```
 
-### Clean up after deleting a worktree
-
-```sh
-composefork prune
-```
-
-Removes any forked compose projects whose worktree directories no longer exist.
-
 ## Other commands
 
 - `composefork version` — print version, commit, and build date.
