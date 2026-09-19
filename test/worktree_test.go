@@ -190,7 +190,7 @@ func TestPsShowsCrashedService(t *testing.T) {
 // worktree; git does not, so the fork starts without them. .env is the one that
 // hurts: composefork reads the parent project name from it, and without it the
 // name falls back to the worktree's own directory — the fork is then detached
-// from the parent's cache and from ls/prune, silently. `up` has to copy the
+// from the parent's cache and from ls, silently. `up` has to copy the
 // listed files out of the main checkout before it loads the compose project.
 //
 // Only the copy is asserted here. Whether the fork then comes up is TestForkUp's

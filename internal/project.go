@@ -71,7 +71,7 @@ func (p *Project) Load() (*types.Project, error) {
 func projectLabels(projectName, dir string) map[string]string {
 	return map[string]string{
 		COMPOSEFORK_PROJECT_LABEL: projectName, // shared group id / discovery marker
-		COMPOSEFORK_DIR_LABEL:     dir,         // dir path (prune's existence check)
+		COMPOSEFORK_DIR_LABEL:     dir,         // dir path the fork was created from
 	}
 }
 

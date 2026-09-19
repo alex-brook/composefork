@@ -24,10 +24,3 @@ func TestLs(t *testing.T) {
 	_, err := executeCommand(t, "ls")
 	assertNoError(t, err)
 }
-
-// prune removes forks whose worktree dir is gone; with nothing orphaned it's a
-// clean no-op.
-func TestPrune(t *testing.T) {
-	_, err := executeCommand(t, "prune")
-	assertNoError(t, err)
-}

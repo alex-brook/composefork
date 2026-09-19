@@ -40,12 +40,6 @@ Open items ranked by severity, worst first. Completed work is at the bottom.
       project created the volume first owns the label `down --volumes` selects on, so a
       fork's teardown can delete it outright
 
-- [] `prune` is daemon wide
-    - [] It removes forks belonging to other repositories
-    - [] It deletes the main project's volumes if its directory was moved
-    - [] Forks that were already `down`ed have no containers left, so it can't see their
-      volumes and never cleans them
-
 ## High — the agent gets stuck or is actively misled
 
 - [] `up` waits for health with no timeout, a never-healthy service hangs forever with no output
@@ -85,7 +79,6 @@ Open items ranked by severity, worst first. Completed work is at the bottom.
     - [] Cache snapshots are gzipped but named `.tar`
     - [] `dir` params in `exportVolumes` and `withDirLock` are shadowed by a fresh
       `cacheDir()` call, and the lock only covers the rename, not the export
-    - [] `cmd/prune.go` short help: "Remove orphaned project that have had their worktree deleted"
     - [] `internal/app.go` comment mentions "interactive exec", stale since exec went
       non-interactive, and probably the origin of the wrong skill text
     - [] This file still says `composefork worktree <cmd>` in places, subcommands are flat now
