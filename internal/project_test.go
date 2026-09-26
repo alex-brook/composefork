@@ -72,7 +72,7 @@ func TestApplyForkOverridesBindsLoopback(t *testing.T) {
 				"web": {Name: "web", Ports: c.ports},
 			}}
 
-			applyForkOverrides(project, "app")
+			applyForkOverrides(project)
 
 			got := project.Services["web"].Ports
 			if len(got) != len(c.ports) {
@@ -98,7 +98,7 @@ func TestApplyForkOverridesNoPorts(t *testing.T) {
 		"worker": {Name: "worker"},
 	}}
 
-	applyForkOverrides(project, "app")
+	applyForkOverrides(project)
 
 	if got := project.Services["worker"].Ports; len(got) != 0 {
 		t.Errorf("Ports = %v, want none", got)

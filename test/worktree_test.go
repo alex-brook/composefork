@@ -6,11 +6,39 @@ import (
 	"testing"
 )
 
+// TestForkCommandsRefuseMainWorktree proves every command that operates on a
+// fork will not run in the main checkout. That checkout is the developer's own
+// project, managed with plain docker compose; operating on a fork there would
+// shadow it, so composefork tells the caller to make a worktree first. The
+// global commands (cache, ls, version, skill) are deliberately not guarded.
+func TestForkCommandsRefuseMainWorktree(t *testing.T) {
+	for _, command := range [][]string{
+		{"up"},
+		{"down"},
+		{"ps"},
+		{"restart"},
+		{"exec", "web", "true"},
+	} {
+		t.Run(command[0], func(t *testing.T) {
+			setupTest(t)
+
+			out, err := executeCommand(t, command...)
+			if err == nil {
+				t.Fatalf("%s in the main checkout succeeded, want a refusal\n--- output ---\n%s", command[0], out)
+			}
+			assertContains(t, err.Error(), "worktree")
+			assertNotContains(t, out, "Building")
+			assertNotContains(t, out, "Tearing down")
+		})
+	}
+}
+
 // TestWorktree is the ordered end-to-end lifecycle for the no-cache path. It
-// shares one `up` across subtests (up is the expensive step), so the subtests
-// run in order and are not independent. The with-cache path lives in TestCache.
+// runs in a linked worktree, the only place up runs, and shares one `up` across
+// subtests (up is the expensive step), so the subtests run in order and are not
+// independent. The with-cache path lives in TestCache.
 func TestWorktree(t *testing.T) {
-	project := setupTest(t)
+	project, fork := setupWorktreeTest(t)
 
 	t.Run("up cold", func(t *testing.T) {
 		_, err := executeCommand(t, "up")
@@ -22,10 +50,10 @@ func TestWorktree(t *testing.T) {
 		assertNetworkExists(t, project, "default")
 		assertVolumeExists(t, project, "bundle_data")
 
-		// The main worktree is the developer's own project: its authored port
-		// bindings are left exactly as written, loopback or not.
-		assertPortsLoopback(t, project, "web")   // authored "127.0.0.1:3000:3000"
-		assertPortsNotLoopback(t, project, "db") // authored bare "5432"
+		// Forks are agent scratch space, so nothing they publish is reachable
+		// off loopback.
+		assertPortsLoopback(t, project, "web")
+		assertPortsLoopback(t, project, "db")
 	})
 
 	t.Run("ps", func(t *testing.T) {
@@ -36,7 +64,7 @@ func TestWorktree(t *testing.T) {
 	t.Run("ls", func(t *testing.T) {
 		out, err := executeCommand(t, "ls")
 		assertNoError(t, err)
-		assertContains(t, out, project)
+		assertContains(t, out, fork)
 	})
 
 	t.Run("exec", func(t *testing.T) {
@@ -64,7 +92,7 @@ func TestWorktree(t *testing.T) {
 // and finds its stdout in the captured buffer. It also confirms the app's log
 // diagnostics ("Building") are captured on the up call.
 func TestExecCapturesOutput(t *testing.T) {
-	project := setupTest(t)
+	project, _ := setupWorktreeTest(t)
 
 	out, err := executeCommand(t, "up")
 	assertNoError(t, err)
@@ -165,7 +193,7 @@ func TestParallelForks(t *testing.T) {
 // compose file mistake — and it has no reason to reach for `restart`. The crash
 // has to stay on screen, as an exited row.
 func TestPsShowsCrashedService(t *testing.T) {
-	project := setupTest(t)
+	project, _ := setupWorktreeTest(t)
 
 	_, err := executeCommand(t, "up")
 	assertNoError(t, err)

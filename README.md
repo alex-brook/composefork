@@ -29,6 +29,10 @@ Download a binary matching your system from the releases page and add it to your
 
 ## Reference
 
+All commands below operate on a fork and only run inside a worktree; in the
+main checkout they refuse and tell you to create and enter one first. `cache`
+and `ls` are project- and machine-wide, and `version`/`skill` run anywhere.
+
 ### Start a forked environment for a worktree
 
 ```sh

@@ -8,6 +8,10 @@ import (
 )
 
 func (a *App) Restart(services []string) error {
+	if err := requireWorktree(); err != nil {
+		return err
+	}
+
 	project, err := NewProject("")
 	if err != nil {
 		return fmt.Errorf("error loading project: %w", err)

@@ -8,6 +8,10 @@ import (
 )
 
 func (a *App) Down() error {
+	if err := requireWorktree(); err != nil {
+		return err
+	}
+
 	// Resolve parent / master project
 	a.Log.Println("Loading parent project")
 	project, err := NewProject("")
@@ -17,7 +21,7 @@ func (a *App) Down() error {
 
 	a.Log.Println("Tearing down project", project.Name)
 	err = a.Compose.Down(context.Background(), project.Name, api.DownOptions{
-		Volumes:       !project.Root(),
+		Volumes:       true,
 		RemoveOrphans: true,
 		Images:        "local",
 	})

@@ -280,18 +280,3 @@ func assertPortsLoopback(t *testing.T, project, service string) {
 		}
 	}
 }
-
-// assertPortsNotLoopback asserts at least one published port is bound off
-// loopback. Used on the main worktree to prove the fork narrowing is not
-// applied to the developer's own project.
-func assertPortsNotLoopback(t *testing.T, project, service string) {
-	t.Helper()
-	ips, labels := hostIPs(t, project, service)
-	for _, ip := range ips {
-		if !ip.IsLoopback() {
-			return
-		}
-	}
-	t.Fatalf("service %q in project %q publishes only on loopback, want its authored binding left alone\n--- all bindings ---\n%s",
-		service, project, strings.Join(labels, "\n"))
-}

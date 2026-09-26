@@ -1,199 +1,123 @@
 # TODO
 
 Open items ranked by severity, worst first. Completed work is at the bottom.
-
-> 🤖 Ranking and the 🤖-marked notes below are Claude's; everything else is
-> unchanged. Severity here means blast radius on the developer's real
-> environment, then how badly a wrong result misleads an agent, then the rest.
+Format: one short bullet per item; nested bullets only for supporting detail.
 
 ## Critical — hits a real developer, silently
 
-- [] Running `composefork up` in the main worktree should be equivalent to docker compose up
-    - [x] It no longer restores the cache over volumes that already hold data
-        - `Up` lists the volumes that exist before `Create` and imports only into the
-          ones compose then makes, so nothing that already has data is a target. Two
-          cases, and they are not the same size: the main worktree was the developer's
-          own data and rare, a fork was its own work and on every repeated `up`
-        - 🤖 A fork's volumes are disposable — `down` deletes them — so resetting one
-          costs little, and an earlier note here calling this the wider blast radius
-          was wrong. The defect is that `up` was not resetting anything: import is
-          `Untar` over the volume, not a replace, so files the snapshot holds revert,
-          files written since stay, and what comes back is a mix rather than either
-          state — stale postgres control files beside newer WAL. A real reset has to
-          remove the volumes, which is what `down` is for
-        - 🤖 An `up` interrupted between `Create` and the import leaves empty volumes
-          that are never seeded afterwards. The fork installs from scratch instead,
-          which is slow rather than wrong
-        - 🤖 Covered by `TestCache`'s ordered subtests: the fork's first `up` restores
-          the snapshot, and an edit to a file the snapshot holds survives the second
-    - [] Still not equivalent: a main worktree with no volumes yet (a fresh clone)
-      imports the parent snapshot on `up`, where `docker compose up` would start empty
-        - `Project.Root()` is the guard, it just isn't applied. The open question is
-          whether `up`/`down` should refuse to run in the main worktree outright, which
-          would let `Root()` and its two remaining branches go
-
-- [] Volumes with an explicit `name:` or `external: true` are cached but never restored
-    - They carry no project prefix, so the name we look for on import never matches
-    - 🤖 Ranked critical, not medium: the missing restore is the harmless half. Because
-      `applyForkOverrides` never rewrites them either, the fork *mounts the parent's
-      actual volume* — it reads and writes the developer's live database, and whichever
-      project created the volume first owns the label `down --volumes` selects on, so a
-      fork's teardown can delete it outright
+- [ ] Volumes with explicit `name:` or `external: true` are cached but never restored
+    - No project prefix, so the import name never matches
+    - Worse: the fork mounts the parent's live volume, and `down --volumes` can delete it
 
 ## High — the agent gets stuck or is actively misled
 
-- [] `up` waits for health with no timeout, a never-healthy service hangs forever with no output
+- [ ] `up` waits for health with no timeout; a never-healthy service hangs forever with no output
 
 ## Medium — correctness and ergonomics
 
-- [] Setup prompt that covers:
-    - [] That a compose project exists
-    - [] That it can be recognised from the root directory (.env)
-    - [] That healthchecks are defined for every service that installs deps on start, st when the health check passes the deps are ready to be cached
-    - [] Adding a claude hook that runs `composefork worktree down` on SessionEnd if composefork is installed
-    - [] Adding context to AGENTS.md or CLAUDE.md about composefork, and how to use `composefork skill` to get further context
-    - 🤖 Worth pulling forward: the missing `.env` is not just a setup nicety. Without a
-      pinned `COMPOSE_PROJECT_NAME` the parent name is inferred per worktree, which
-      silently turns the entire volume cache into a no-op
+- [ ] Setup prompt should cover:
+    - [ ] That a compose project exists
+    - [ ] That it can be recognised from the root directory (`.env`)
+    - [ ] That every service installing deps on start has a healthcheck; deps are cacheable once healthy
+    - [ ] A Claude hook running `composefork worktree down` on SessionEnd when installed
+    - [ ] AGENTS.md/CLAUDE.md context on composefork and `composefork skill`
+    - Missing `.env` is not cosmetic: without a pinned `COMPOSE_PROJECT_NAME`, the parent name is inferred per worktree and the volume cache becomes a no-op
 
-- [] Support bare repositories, where every checkout is a linked worktree and none
-  of them is the main one
-    - [] `cache` chdirs to `projectRoot()`, which trims `/.git` and so hands back a
-      bare `/repo.git` unchanged — a git dir with no working tree to change into
-    - [] Nothing is ever the parent, so there is no checkout to snapshot volumes from,
-      or to copy the `.worktreeinclude` entries out of
+- [ ] Support bare repositories, where every checkout is a linked worktree and none is the main one
+    - [ ] `cache` chdirs to `projectRoot()`, which returns a bare `/repo.git` unchanged — no working tree
+    - [ ] Nothing is the parent, so there are no volumes to snapshot and no `.worktreeinclude` source
 
-- [] Commands have no `Args` validators, stray arguments are silently ignored
+- [ ] Commands have no `Args` validators; stray arguments are silently ignored
 
-- [] Cached snapshots are never pruned, the cache dir grows unbounded
+- [ ] Cached snapshots are never pruned; the cache dir grows unbounded
 
-- [] Errors print the whole usage block, only `exec` sets `SilenceUsage`
+- [ ] Errors print the whole usage block; only `exec` sets `SilenceUsage`
 
 ## Low — cosmetics and docs
 
-- [] Add a verbose flag
+- [ ] Add a verbose flag
 
-- [] Small cleanups
-    - [] `internal/system_image_test.go` comment describes `/import` and `/export` links
-      dispatching on argv[0]; it's really one `/runner` entrypoint dispatching on argv[1]
-    - [] Cache snapshots are gzipped but named `.tar`
-    - [] `dir` params in `exportVolumes` and `withDirLock` are shadowed by a fresh
-      `cacheDir()` call, and the lock only covers the rename, not the export
-    - [] `internal/app.go` comment mentions "interactive exec", stale since exec went
-      non-interactive, and probably the origin of the wrong skill text
-    - [] This file still says `composefork worktree <cmd>` in places, subcommands are flat now
+- [ ] Small cleanups:
+    - [ ] `internal/system_image_test.go` comment describes `/import`/`/export` by argv[0]; it is one `/runner` entrypoint dispatching on argv[1]
+    - [ ] Cache snapshots are gzipped but named `.tar`
+    - [ ] `dir` params in `exportVolumes` and `withDirLock` are shadowed by `cacheDir()`, and the lock only covers the rename, not the export
+    - [ ] `internal/app.go` comment mentions "interactive exec", stale since exec went non-interactive (likely origin of the wrong skill text)
+    - [ ] This file still says `composefork worktree <cmd>` in places; subcommands are flat now
 
 ## Future work
 
-- Investigate checkpoints to avoid using too much RAM
-    - [] Guess memory consumption based on avg. of existing projects
-    - [] Decide if we will go over the allocated docker RAM with a new fork
-    - [] Checkpoint/pause the oldest
-    - [] When you interact with a paused project, prints a note for agent to ask permission before unpausing
+- [ ] Investigate checkpoints to avoid using too much RAM
+    - [ ] Estimate memory use from the average of existing projects
+    - [ ] Decide if a new fork exceeds the allocated Docker RAM
+    - [ ] Checkpoint/pause the oldest
+    - [ ] On interaction with a paused project, print a note asking the agent to get permission before unpausing
 
-- Use composefork to bring up a development stack in CI
+- [ ] Use composefork to bring up a development stack in CI
     - Reliability, not speed. Guarantee: unchanged config survives an outage
-    - CI restores the cache dir, `composefork ci` imports what's there, `cache`
-      re-produces only on compose-config or lockfile change (a full throwaway bring-up)
+    - CI restores the cache dir; `composefork ci` imports it; `cache` re-produces only on compose-config or lockfile change
     - Three artifacts in one dir: volume snapshots, image tarballs, build cache
-    - Consumer stays on the default docker driver — base images resolve from the local
-      store there and cache imports work. Producer needs a `docker-container` builder,
-      the only thing that can export cache. Different runs, so no conflict
-
-    - [] `composefork ci` — restore everything cached and bring up the main worktree
+    - Consumer stays on the default docker driver; producer needs a `docker-container` builder to export cache
+    - [ ] `composefork ci` — restore everything cached and bring up the main worktree
         - Thin wrapper over `up`'s path, not a parallel one
         - Natural home for the "report what was restored" line
-        - Read-only: never produces. A miss is the workflow cache key's business
-        - 🤖 Names the caller, not the behaviour — a cold-start restore outside CI
-          (fresh clone, prebuild) would be running a command called `ci`
-    - [] Images — pulled service images plus base images, `ImageLoad` before `Create`
-        - Built images out of scope, the build replaces them
+        - Read-only; never produces
+        - Name describes the caller, not the behaviour (a cold-start restore is not CI)
+    - [ ] Images — pulled service images plus base images, `ImageLoad` before `Create`
+        - Built images out of scope; the build replaces them
         - Base images need `FROM` parsing, or capture during `cache`
-    - [] Build cache — `cache_to` in `cache`, `cache_from` in `up`. `type=local`,
-      `mode=max`, one dir per service
-    - [] Producer branches: images only if build cache is also exportable
-        - [] `cache` makes its own `docker-container` builder first, else this fires for
-          any CI job without `setup-buildx-action`
-        - [] Report what was emitted — every failure mode here is silent
-    - [] Cache dir addressable, size ceiling, what a cache miss does
+    - [ ] Build cache — `cache_to` in `cache`, `cache_from` in `up`; `type=local`, `mode=max`, one dir per service
+    - [ ] Producer branches: images only if build cache is also exportable
+        - [ ] `cache` makes its own `docker-container` builder first
+        - [ ] Report what was emitted; every failure mode here is silent
+    - [ ] Define cache dir addressability, size ceiling, and cache-miss behaviour
 
-- Decide whether podman is supported, and make it true either way
-    - [] Does it build at all? `BuildKitEnabled()` returns true on podman, so compose
-      takes the bake path when buildx is on disk — against a daemon with no BuildKit
-    - [] Volume snapshot round trip under rootless podman: `UsernsMode: "host"` vs
-      subuid mapping. Likelier breakage than builds, and it's the core feature
-    - [] Then document as supported and add to CI, or detect and refuse clearly
+- [ ] Decide whether podman is supported, and make it true either way
+    - [ ] Does it build? `BuildKitEnabled()` is true on podman, so compose takes the bake path against a daemon without BuildKit
+    - [ ] Volume snapshot round trip under rootless podman (`UsernsMode: "host"` vs subuid mapping)
+    - [ ] Then document as supported and add to CI, or detect and refuse clearly
 
 ## Done
 
-- [x] Untracked files listed in `.worktreeinclude` are missing when an agent makes the
-  worktree, rather than the claude app
-    - [x] Copy the missing ones from the main worktree on `up`, before the compose
-      project is loaded
-    - 🤖 `.env` was the one that hurt: compose fell back to the worktree's own directory
-      name, so `cache` was a silent no-op and `ls`/`prune` lost track of the fork
-    - 🤖 git does the matching, so there is no gitignore library and no new dependency.
-      Candidates come from `ls-files --others --ignored --exclude-standard --directory`,
-      which is why a tracked file is never one and can never collide. A second
-      `ls-files --exclude-from=.worktreeinclude` restricted to those candidates applies
-      the patterns and expands the collapsed directories in one pass
-    - 🤖 Seeds only what is absent. The app copies once, at worktree creation; `up` is
-      our only hook and runs every time, so "add what is missing" is what makes a
-      repeated call mean the same as a single one. Restamping would overwrite the
-      agent's own edits to the fork's `.env`, which is worse than doing nothing
-    - 🤖 Per-entry failures are collected rather than aborting the rest, and `up` logs
-      them as a warning — one bad entry shouldn't cost the fork the others
-    - 🤖 Covered by `internal/worktreeinclude_test.go` (13 tests, no Docker) plus
-      `TestForkUpWithoutIncludedFiles` and `TestForkUpTwiceKeepsLocalEdits`
+- [x] `composefork up` in the main worktree should equal `docker compose up`
+    - Decided instead to refuse: every fork command (`up`, `down`, `ps`, `exec`, `restart`) runs only in a worktree and tells the caller to create and enter one first; `cache`, `ls`, `version` and `skill` stay global
+    - Resolves the fresh-clone snapshot import, and lets `Project.Root()` and its branches go entirely
 
-- It wasn't obvious that `composefork worktree up` waits for the project to be healthy
+- [x] Untracked files listed in `.worktreeinclude` are missing when an agent makes the worktree
+    - [x] Copy the missing ones from the main worktree on `up`, before the compose project is loaded
+    - git does the matching (no new dependency); seeds only absent files; per-entry failures collected as warnings
+    - Covered by `internal/worktreeinclude_test.go`, `TestForkUpWithoutIncludedFiles`, `TestForkUpTwiceKeepsLocalEdits`
+
+- [x] It wasn't obvious that `composefork worktree up` waits for the project to be healthy
     - [x] Show health as a column in project info
 
 - [x] When a project container died, the agent got stuck
-    - [x] Add `composefork worktree restart` command
+    - [x] Add `composefork worktree restart`
 
-- [x] The agent confused ls and ps, is there misleading docs?
+- [x] The agent confused `ls` and `ps`; is there misleading docs?
 
-- [x] There is no exec command, the agent has to construct a vanilla compose command with the project name
+- [x] There is no exec command; the agent has to construct a vanilla compose command with the project name
 
 - [x] Add version command
 
-- [x] Volumes are not copied on fork, which means they take a long time to start
-    - [x] Add a new command `composefork cache`
-    - [x] Stop the parent project
-        - 🤖 Stale: `cache` builds a throwaway randomly-named project instead of stopping
-          the parent. Good — but the teardown for it only runs on the success path, so
-          every failed `cache` leaks a full duplicate stack that nothing can reclaim
+- [x] Volumes are not copied on fork, so they take a long time to start
+    - [x] Add `composefork cache`
+    - [x] Stop the parent project (now builds a throwaway randomly-named project instead)
     - [x] System container for these kinds of operations
     - [x] Snapshot volumes
-    - [x] Use these cached volumes when creating forks
+    - [x] Use cached volumes when creating forks
 
 - [x] Each fork should build its own image, not just use the parent image
     - [x] Fork images should be removed when the project is torn down
-        - 🤖 Only true for services that omit `image:`. With an explicit tag the fork
-          builds over the shared tag and `down` then deletes it out from under the parent
+        - Only true for services that omit `image:`; an explicit tag is shared and `down` deletes it out from under the parent
 
 - [x] Expose forked services on 127.0.0.1
-    - 🤖 `applyForkOverrides` sets `HostIP` to `127.0.0.1` instead of clearing it.
-      Clearing it wasn't enough: a bare `3000:3000` leaves the field empty and the daemon
-      then binds `0.0.0.0`, so the fork has to force loopback rather than preserve what
-      the parent authored
-    - 🤖 Covered by `TestApplyForkOverridesBindsLoopback` (bare, explicit loopback,
-      wildcard, LAN address, udp, expanded range) and by port assertions on the existing
-      bring-ups in `TestForkUp` and `TestWorktree` — the latter guards that the main
-      worktree keeps its own authored bindings
+    - `applyForkOverrides` sets `HostIP` to `127.0.0.1` rather than clearing it, so a bare `3000:3000` cannot bind `0.0.0.0`
+    - Covered by `TestApplyForkOverridesBindsLoopback`, plus port assertions in `TestForkUp`/`TestWorktree`
 
 - [x] Crashed services vanish from `ps` instead of showing as exited
-    - `Ps` is called with `All: false`, so a dead container is simply absent
-    - This is the "agent got stuck" case again — restart only helps if you know to run it
-    - 🤖 `printProjectStatus` passes `All: true`, so a dead container keeps its row
-      and reports as `exited` rather than dropping out of the table
-    - 🤖 Covered by `TestPsShowsCrashedService`, which SIGKILLs a service through the
-      Docker API (bypassing compose, so the daemon sees an abrupt death) and asserts the
-      service is still listed. It asserts the row is present *before* the kill as well —
-      without that, a row that never matched would be indistinguishable from one that
-      survived
+    - `Ps` used `All: false`; `printProjectStatus` now passes `All: true`
+    - Covered by `TestPsShowsCrashedService`
 
-- [x] Replace bundled debian with smaller non-gpl image
+- [x] Replace bundled Debian with a smaller non-GPL image
 
 - [x] Add tests to CI

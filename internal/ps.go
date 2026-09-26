@@ -5,6 +5,10 @@ import (
 )
 
 func (a *App) Ps() error {
+	if err := requireWorktree(); err != nil {
+		return err
+	}
+
 	// Resolve parent / master project
 	project, err := NewProject("")
 	if err != nil {

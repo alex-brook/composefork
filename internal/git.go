@@ -115,6 +115,23 @@ func lsFiles(dir string, args ...string) ([]string, error) {
 	return paths, nil
 }
 
+// A fork command run in the developer's own checkout has no fork to operate on.
+var errMainWorktree = errors.New(`composefork must run in a worktree, not the main checkout.
+Create a worktree and enter it first, for example:
+  git worktree add ../my-feature
+  cd ../my-feature`)
+
+func requireWorktree() error {
+	inMain, err := inMainWorktree()
+	if err != nil {
+		return err
+	}
+	if inMain {
+		return errMainWorktree
+	}
+	return nil
+}
+
 func inMainWorktree() (bool, error) {
 	sourceRoot, destRoot, err := worktreeRoots()
 	if err != nil {

@@ -37,6 +37,11 @@ subdirectory silently creates a separate, wrong project.
 The forked project is named {original_project}-{worktree_dirname}, so each
 worktree gets its own isolated namespace automatically.
 
+Except for "cache", "ls", "version" and "skill", these commands operate on a
+fork and refuse to run in the main checkout. In the main checkout they tell you
+to create and enter a worktree first — that checkout is the developer's own
+project, managed with plain "docker compose".
+
 ### composefork up
 Brings up a forked copy of the compose project for the current worktree.
 Port bindings are assigned dynamically (no fixed host ports), so multiple
@@ -53,17 +58,14 @@ Tears down the forked compose project for the current worktree, removing its
 containers, images and volumes. Run this when you are done or need a clean
 environment.
 
-In the main checkout there is no fork to remove, so it stops the project but
-leaves your volumes alone.
-
 ### composefork ps
 Lists the services for the current worktree's project, showing each service's
 state, health and dynamically assigned host ports. Because ports are assigned
 dynamically at "up" time, use this to find which host ports your services are
 reachable on.
 
-Only running services are listed. If a service you expect is missing, it has
-crashed rather than been left out.
+Exited services stay listed, so a crashed service shows as an exited row rather
+than silently dropping out of the table.
 
 ### composefork exec [service] [command...]
 Runs a one-off command inside a running service container of the current

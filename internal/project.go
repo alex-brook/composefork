@@ -15,7 +15,7 @@ import (
 
 type Project struct {
 	Parent     *types.Project // the compose project as authored
-	Name       string         // project name: parent's in the main worktree, {Parent.Name}-{basename(WorkingDir)} in a fork
+	Name       string         // fork name: {Parent.Name}-{basename(WorkingDir)}, or a caller-supplied name
 	WorkingDir string         // absolute working directory, resolved once
 }
 
@@ -30,17 +30,10 @@ func NewProject(customName string) (*Project, error) {
 		return nil, err
 	}
 
-	mainWorktree, err := inMainWorktree()
-	if err != nil {
-		return nil, err
-	}
-
-	var name string
-	if customName != "" {
-		name = customName
-	} else if mainWorktree {
-		name = parent.Name
-	} else {
+	// An empty name means the current worktree's fork; every caller guards the
+	// main checkout first. cache supplies its own throwaway name instead.
+	name := customName
+	if name == "" {
 		name = forkName(parent.Name, wd)
 	}
 
@@ -51,19 +44,15 @@ func NewProject(customName string) (*Project, error) {
 	}, nil
 }
 
-func (p *Project) Root() bool {
-	return p.Name == p.Parent.Name
-}
-
 func (p *Project) Load() (*types.Project, error) {
 	project, err := loadComposeProject(p.Name)
 	if err != nil {
 		return nil, err
 	}
 	applyLabels(project, p.Labels())
-	if !p.Root() {
-		applyForkOverrides(project, p.Parent.Name)
-	}
+	// Only forks reach Load: up refuses the main checkout, and cache builds a
+	// throwaway project, so the parent's authored bindings are never kept here
+	applyForkOverrides(project)
 
 	return project, nil
 }
@@ -117,7 +106,7 @@ func applyLabels(project *types.Project, labels map[string]string) {
 	}
 }
 
-func applyForkOverrides(project *types.Project, parentName string) {
+func applyForkOverrides(project *types.Project) {
 	for name, srv := range project.Services {
 		for i := range srv.Ports {
 			srv.Ports[i].Published = ""
