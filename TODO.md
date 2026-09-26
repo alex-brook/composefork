@@ -15,14 +15,6 @@ Format: one short bullet per item; nested bullets only for supporting detail.
 
 ## Medium — correctness and ergonomics
 
-- [ ] Setup prompt should cover:
-    - [ ] That a compose project exists
-    - [ ] That it can be recognised from the root directory (`.env`)
-    - [ ] That every service installing deps on start has a healthcheck; deps are cacheable once healthy
-    - [ ] A Claude hook running `composefork worktree down` on SessionEnd when installed
-    - [ ] AGENTS.md/CLAUDE.md context on composefork and `composefork skill`
-    - Missing `.env` is not cosmetic: without a pinned `COMPOSE_PROJECT_NAME`, the parent name is inferred per worktree and the volume cache becomes a no-op
-
 - [ ] Support bare repositories, where every checkout is a linked worktree and none is the main one
     - [ ] `cache` chdirs to `projectRoot()`, which returns a bare `/repo.git` unchanged — no working tree
     - [ ] Nothing is the parent, so there are no volumes to snapshot and no `.worktreeinclude` source
@@ -77,6 +69,10 @@ Format: one short bullet per item; nested bullets only for supporting detail.
     - [ ] Then document as supported and add to CI, or detect and refuse clearly
 
 ## Done
+
+- [x] Setup prompt covering the project prerequisites
+    - `composefork setup` prints a prompt that walks an agent through the compose config, `.env`, `.worktreeinclude`, agent instructions and a SessionEnd hook, then catalogs the assumptions composefork makes
+    - It lives in `cmd/setup.md`, embedded so the binary carries it
 
 - [x] `composefork up` in the main worktree should equal `docker compose up`
     - Decided instead to refuse: every fork command (`up`, `down`, `ps`, `exec`, `restart`) runs only in a worktree and tells the caller to create and enter one first; `cache`, `ls`, `version` and `skill` stay global
