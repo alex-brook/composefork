@@ -9,6 +9,9 @@ func newDownCmd() *cobra.Command {
 	downCmd := &cobra.Command{
 		Use:   "down",
 		Short: "Tear down the compose project for this worktree",
+		Long: `Tears down the forked compose project for the current worktree, removing its
+containers, images and volumes. Run this when you are done or need a clean
+environment.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := internal.NewApp(cmd.OutOrStdout())
 			if err != nil {

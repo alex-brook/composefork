@@ -28,7 +28,7 @@ Download a binary matching your system from the releases page and add it to your
   `composefork setup | claude -p`. The prompt walks the agent through the compose
   config, `.env`, `.worktreeinclude` and agent instructions, and ends with the
   assumptions composefork makes about your project
-- Instruct agents to use `composefork` to manage the project in your AGENTS.md or similar. You may want to use `composefork skill` as a baseline
+- Instruct agents to use `composefork` to manage the project in your AGENTS.md or similar. Point them at `composefork help` as a baseline
 - Add a hook to your agent orchestrator to run `composefork down` when you close a chat thread
 - Run `composefork cache` if your services have health checks, this makes bringing up a new stack faster and more reliable
 
@@ -36,7 +36,8 @@ Download a binary matching your system from the releases page and add it to your
 
 All commands below operate on a fork and only run inside a worktree; in the
 main checkout they refuse and tell you to create and enter one first. `cache`
-and `ls` are project- and machine-wide, and `version`/`skill` run anywhere.
+and `ls` are project- and machine-wide, and `version`/`setup`/`help` run
+anywhere.
 
 ### Start a forked environment for a worktree
 
@@ -107,7 +108,7 @@ composefork ls
 ## Other commands
 
 - `composefork version` — print version, commit, and build date.
-- `composefork skill` — print agent-oriented usage instructions (intended to be
-  fed to coding agents so they use composefork instead of raw `docker compose`).
+The per-command help (`composefork help <command>`) is written to be read by
+coding agents, so they use composefork instead of raw `docker compose`.
 - `composefork setup` — print a prompt to paste into a coding agent to retrofit
   an existing project for composefork.

@@ -12,12 +12,6 @@ func TestVersion(t *testing.T) {
 	assertContains(t, out, "dev") // default version when not built with ldflags
 }
 
-func TestSkill(t *testing.T) {
-	out, err := executeCommand(t, "skill")
-	assertNoError(t, err)
-	assertContains(t, out, "composefork")
-}
-
 func TestSetup(t *testing.T) {
 	out, err := executeCommand(t, "setup")
 	assertNoError(t, err)

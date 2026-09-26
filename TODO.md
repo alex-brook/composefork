@@ -33,7 +33,7 @@ Format: one short bullet per item; nested bullets only for supporting detail.
     - [ ] `internal/system_image_test.go` comment describes `/import`/`/export` by argv[0]; it is one `/runner` entrypoint dispatching on argv[1]
     - [ ] Cache snapshots are gzipped but named `.tar`
     - [ ] `dir` params in `exportVolumes` and `withDirLock` are shadowed by `cacheDir()`, and the lock only covers the rename, not the export
-    - [ ] `internal/app.go` comment mentions "interactive exec", stale since exec went non-interactive (likely origin of the wrong skill text)
+    - [ ] `internal/app.go` comment mentions "interactive exec", stale since exec went non-interactive
     - [ ] This file still says `composefork worktree <cmd>` in places; subcommands are flat now
 
 ## Future work
@@ -70,12 +70,15 @@ Format: one short bullet per item; nested bullets only for supporting detail.
 
 ## Done
 
+- [x] Help is the agent entry point; the `skill` command is gone
+    - Cross-cutting guidance (when to use it, the volume cache, project requirements, the worktree rules) lives in `composefork help`; per-command detail in `composefork help <command>`
+
 - [x] Setup prompt covering the project prerequisites
     - `composefork setup` prints a prompt that walks an agent through the compose config, `.env`, `.worktreeinclude`, agent instructions and a SessionEnd hook, then catalogs the assumptions composefork makes
     - It lives in `cmd/setup.md`, embedded so the binary carries it
 
 - [x] `composefork up` in the main worktree should equal `docker compose up`
-    - Decided instead to refuse: every fork command (`up`, `down`, `ps`, `exec`, `restart`) runs only in a worktree and tells the caller to create and enter one first; `cache`, `ls`, `version` and `skill` stay global
+    - Decided instead to refuse: every fork command (`up`, `down`, `ps`, `exec`, `restart`) runs only in a worktree and tells the caller to create and enter one first; `cache`, `ls`, `version`, `setup` and `help` stay global
     - Resolves the fresh-clone snapshot import, and lets `Project.Root()` and its branches go entirely
 
 - [x] Untracked files listed in `.worktreeinclude` are missing when an agent makes the worktree

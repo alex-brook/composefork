@@ -10,7 +10,7 @@ import (
 // fork will not run in the main checkout. That checkout is the developer's own
 // project, managed with plain docker compose; operating on a fork there would
 // shadow it, so composefork tells the caller to make a worktree first. The
-// global commands (cache, ls, version, skill) are deliberately not guarded.
+// global commands (cache, ls, version, setup) are deliberately not guarded.
 func TestForkCommandsRefuseMainWorktree(t *testing.T) {
 	for _, command := range [][]string{
 		{"up"},
