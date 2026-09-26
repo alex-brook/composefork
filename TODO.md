@@ -11,6 +11,11 @@ Format: one short bullet per item; nested bullets only for supporting detail.
 
 ## High — the agent gets stuck or is actively misled
 
+- [ ] The fork name is not sanitised, so ordinary worktree directory names break `up`
+    - `forkName` appends `basename(cwd)` verbatim; compose rejects names that aren't already normalised, so a worktree dir of `Feature` or `feature.x` fails `Load` with `invalid project name "proj-Feature"`
+    - `ps` never calls `Load`, so it happily prints `proj-Feature` while `up` and `cache` refuse it — the same fork is visible and unusable
+    - Normalise the suffix (lowercase, strip to `[a-z0-9_-]`) and handle the resulting collisions, rather than telling the agent to rename its worktree
+
 - [ ] `up` waits for health with no timeout; a never-healthy service hangs forever with no output
 
 ## Medium — correctness and ergonomics
