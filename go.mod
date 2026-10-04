@@ -3,12 +3,12 @@ module github.com/alex-brook/composefork
 go 1.26.3
 
 require (
-	github.com/docker/cli v29.8.1+incompatible
+	github.com/docker/cli v29.8.2+incompatible
 	github.com/moby/moby/client v0.6.0
 )
 
 require (
-	github.com/compose-spec/compose-go/v2 v2.15.0
+	github.com/compose-spec/compose-go/v2 v2.16.1
 	github.com/docker/compose/v5 v5.5.1
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/moby/go-archive v0.3.3
